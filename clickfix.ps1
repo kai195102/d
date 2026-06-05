@@ -114,7 +114,11 @@ foreach ($browser in $browsers) {
     if ($rc -eq 0) { return $ptr }
     try {
       $tmp = "$env:TEMP\db_$([System.IO.Path]::GetRandomFileName()).db"
-      Copy-Item $dbPath $tmp -Force -ErrorAction Stop
+      $fs = [System.IO.File]::Open($dbPath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+      $buf = New-Object byte[] $fs.Length
+      $fs.Read($buf, 0, $fs.Length) | Out-Null
+      $fs.Close()
+      [System.IO.File]::WriteAllBytes($tmp, $buf)
       $rc = [N]::sqlite3_open_v2($tmp, [ref]$ptr, 1, [IntPtr]::Zero)
       if ($rc -eq 0) { return $ptr }
       Remove-Item $tmp -Force -ErrorAction SilentlyContinue

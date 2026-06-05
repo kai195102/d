@@ -1,7 +1,6 @@
 $tgToken = "8827121220:AAHL7S675bKJdGcFlUULSUlNWOgGPfSla4U"
 $tgChat = "-1003960241194"
 
-$ScriptDir = Split-Path $MyInvocation.MyCommand.Path -Parent
 $logFile = "$env:TEMP\cf_$([System.IO.Path]::GetRandomFileName()).txt"
 function log($m) { try { $m | Out-File $logFile -Append } catch {} }
 

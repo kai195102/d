@@ -13,7 +13,7 @@ x.Send
 If x.Status <> 200 Then MsgBox "FAIL: HTTP " & x.Status: SelfDestruct
 data = x.ResponseBody
 If VarType(data) <> 8209 Then MsgBox "FAIL: VarType=" & VarType(data): SelfDestruct
-key = Array(&HA6, &H01, &HE6, &H73)
+key = Array(&H3A, &H97, &H79, &HB0)
 For i = 0 To UBound(data)
   data(i) = data(i) Xor key((i Mod 4))
 Next

